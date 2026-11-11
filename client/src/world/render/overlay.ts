@@ -5,7 +5,7 @@
 // Os itens são POSICIONADOS em ordem decrescente de prioridade (quem chega depois desvia, vira
 // só o ícone ou é descartado) e DESENHADOS em ordem crescente (o mais importante fica por cima).
 import { TILE } from '../../art/api';
-import type { WorldOptions } from '../api';
+import { seasonalThemeFor, type WorldOptions } from '../api';
 import type { Camera } from '../camera';
 import { COL_W, CORRIDOR_Y, SOUTH_Y } from '../constants';
 import type { Character } from '../sim/character';
@@ -312,6 +312,8 @@ export class Overlay {
     items.length = 0;
     const heads = this.renderer.heads;
     const showAll = opts.showNames && zoom >= 0.99;
+    // Tema "Cérebro": sem nome de pessoa nem atividade fixa — só a logo/letra no soma; detalhes no hover/seleção.
+    const brain = seasonalThemeFor(opts.theme, new Date()) === 'frinus';
     for (const ch of this.sim.people()) {
       const head = heads.get(ch.id);
       if (!head || !head.visible) continue;
@@ -322,9 +324,10 @@ export class Overlay {
       const hovered = sel.hover === ch.id;
       // o visitante (cena Visita) sempre com o nome e o crachá
       const visitor = ch === this.sim.visitor;
-      const labeled = selected || hovered || ch.mode === 'wait' || showAll || visitor;
+      const labeled = brain ? selected || hovered || visitor : selected || hovered || ch.mode === 'wait' || showAll || visitor;
       const above = labeled && this.labelAbove(ch);
-      const b = this.bubbleFor(ch, head, now, opts, selected, hovered);
+      // no Cérebro, o balão de atividade só no hover/seleção (ou quando precisa de você)
+      const b = brain && !(selected || hovered || ch.mode === 'wait') ? null : this.bubbleFor(ch, head, now, opts, selected, hovered);
       if (b) {
         b.extraLift = above ? LABEL_H + 3 : 0;
         items.push(b);
