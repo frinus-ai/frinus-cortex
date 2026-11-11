@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# frinus-office — sobe o escritório Frinus (fork do Habblaud) no perfil local-cliente.
+#
+# Carrega frinus/office.env, aponta o lançador Frinus (HABBLAUD_CLAUDE_BIN) e roda o
+# servidor já compilado (dist/server/index.js). Rode `npm run build` antes, uma vez.
+set -euo pipefail
+
+# Raiz do fork (…/frinus-office), a partir deste script em frinus/bin/.
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+root="$(cd "$here/../.." && pwd)"
+
+# Node 22 (nvm) na frente do PATH, se existir; o `claude` já costuma estar no PATH.
+node_bin="/home/renato/.nvm/versions/node/v22.17.0/bin"
+[ -d "$node_bin" ] && export PATH="$node_bin:$PATH"
+
+# Perfil local-cliente.
+set -a
+# shellcheck disable=SC1091
+. "$root/frinus/office.env"
+set +a
+
+# Lançador Frinus (caminho absoluto; o wrapper precede `--agent frinus`).
+export HABBLAUD_CLAUDE_BIN="$here/frinus-claude"
+
+# Garante os diretórios de estado e a pasta de trabalho padrão do cliente.
+mkdir -p "${HABBLAUD_DATA_DIR:-$HOME/.frinus-office}" "$HOME/Frinus"
+
+if [ ! -f "$root/dist/server/index.js" ]; then
+  echo "frinus-office: build ausente. Rode 'npm run build' em $root primeiro." >&2
+  exit 1
+fi
+
+exec node "$root/dist/server/index.js" "$@"

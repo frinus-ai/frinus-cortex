@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# frinus-claude — lançador do Claude Code para o cliente Frinus (POC Frinus Office).
+#
+# Todo "Novo agente" do escritório nasce como o orquestrador `frinus`, com memória de
+# longo prazo. O Habblaud invoca este script como HABBLAUD_CLAUDE_BIN (ver
+# server/claude-bin.ts); ele repassa os próprios argumentos ao `claude`, apenas
+# antecedendo `--agent frinus`:
+#
+#   - Novo agente     (server/spawn/spawn.ts):  --bg -n "Habblaud: ..." -- "<pedido>"
+#                     -> claude --agent frinus --bg -n "Habblaud: ..." -- "<pedido>"
+#   - Assumir sessão  (server/pty/manager.ts):  (vazio) ou --resume <sessão>
+#                     -> claude --agent frinus            (sessão nova)
+#                     -> claude --agent frinus --resume <sessão>
+#
+# Como `--agent` vem antes dos argumentos recebidos, funciona com `--bg` sem efeito
+# colateral: é só um flag a mais na linha de comando, o `--bg` segue valendo.
+#
+# Ressalva do --resume: ao assumir no terminal uma sessão já existente, o Claude Code
+# retoma a conversa como ela foi criada; passar `--agent frinus` de novo é inofensivo
+# (a sessão já é do agente frinus, pois nasceu por este mesmo wrapper), mas se um dia o
+# `--resume` reclamar de `--agent`, basta o wrapper detectar `--resume` e omitir o
+# `--agent` nesse caso.
+set -euo pipefail
+
+# Isola a conta do Claude Code do cliente, se configurado (office.env define isto).
+if [ -n "${FRINUS_OFFICE_CLAUDE_DIR:-}" ]; then
+  export CLAUDE_CONFIG_DIR="$FRINUS_OFFICE_CLAUDE_DIR"
+fi
+
+# Acha o `claude` real: PATH, ou os locais de instalação mais comuns.
+claude_bin="$(command -v claude 2>/dev/null || true)"
+if [ -z "$claude_bin" ]; then
+  for c in "$HOME/.local/bin/claude" "$HOME/.claude/local/claude"; do
+    if [ -x "$c" ]; then claude_bin="$c"; break; fi
+  done
+fi
+if [ -z "$claude_bin" ]; then
+  echo "frinus-claude: executável 'claude' não encontrado no PATH" >&2
+  exit 127
+fi
+
+exec "$claude_bin" --agent frinus "$@"
