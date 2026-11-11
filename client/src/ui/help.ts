@@ -166,7 +166,7 @@ export class HelpDialog {
           h('h3', { text: tr('Sobre') }),
           h('p', {
             class: 'ui-help__lead',
-            text: tr('Frinus Office — a interface visual do Frinus (tema "A Mente"). Baseado no Habblaud (MIT) por Márcio Junior.'),
+            text: tr('Frinus Office — a interface visual do Frinus (tema "Cérebro"). Baseado no Habblaud (MIT) por Márcio Junior.'),
           }),
         ),
       ),

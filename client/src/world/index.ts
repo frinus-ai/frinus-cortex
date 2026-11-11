@@ -98,7 +98,8 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
     updateBounds();
   };
 
-  const buildingRect = () => ({ x: 0, y: 0, w: sim.building.cols * COL_W * TILE, h: BUILDING_H * TILE });
+  // Tema "Cérebro": a câmera enquadra a constelação (caixa dos clusters), não o prédio.
+  const buildingRect = () => renderer.neuralBounds() ?? { x: 0, y: 0, w: sim.building.cols * COL_W * TILE, h: BUILDING_H * TILE };
 
   const updateBounds = () => {
     const b = buildingRect();
@@ -285,13 +286,16 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
       const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
       if (canvas.clientWidth !== camera.viewW || canvas.clientHeight !== camera.viewH || dpr !== camera.dpr) resize();
       sim.update(dt, now);
+      const theme = seasonalThemeFor(options.theme, new Date());
+      // Cena "Cérebro": posiciona a constelação já com as posições finais, antes da câmera (seguir/centrar) e do desenho.
+      if (theme === 'frinus') renderer.layoutNeural(now);
       // partidas e apostas resolvidas: para o feed (as do timelapse são encenação do passado: ficam fora)
       const events = sim.social.events;
       if (events.length) {
         if (!playback) for (const e of events) for (const cb of socialCbs) cb(e);
         events.length = 0;
       }
-      renderer.sync(seasonalThemeFor(options.theme, new Date()));
+      renderer.sync(theme);
       if (sim.building.cols !== lastCols) {
         lastCols = sim.building.cols;
         updateBounds();

@@ -22,6 +22,7 @@ import { Particles } from './particles';
 import { carSprite, propSprite, shadowSprite } from './props';
 import { countBadge, fallbackIcon } from './shell-sprites';
 import { decorateElevator, drawSeasonalLights, drawSeasonalWindow, seasonalCostume, seasonalFurniture } from './seasonal';
+import { NeuralScene } from '../neural/scene';
 import { buildAreaVis, furnitureSprites, opaqueBounds, paintShell, toWallVis, WALL_MARGIN, wallItemOrigin, wallSprites, type AreaVis, type FurnVis, type WallVis } from './scene';
 
 const enum K {
@@ -116,6 +117,8 @@ export class Renderer {
   private clearColor = '#7fae62';
   private grass: CanvasPattern | null = null;
   private theme: SeasonalTheme = 'none';
+  /** Cena "Cérebro" (tema frinus): desenho vetorial da constelação neural. */
+  private neuralScene: NeuralScene | null = null;
 
   constructor(
     readonly canvas: HTMLCanvasElement,
@@ -139,6 +142,20 @@ export class Renderer {
   sync(theme: SeasonalTheme = 'none'): void {
     const sim = this.sim;
     const themeChanged = theme !== this.theme;
+    // Tema "Cérebro": a cena neural não usa o prédio (áreas/paredes/móveis). Ao entrar,
+    // limpa o escritório construído e força a reconstrução caso o usuário volte a um tema de escritório.
+    if (theme === 'frinus') {
+      if (themeChanged) {
+        this.areas.clear();
+        this.shells = [];
+        this.shellWindows = [];
+        this.base = null;
+        this.baseCols = -1;
+        this.layoutVersion = -1;
+      }
+      this.theme = theme;
+      return;
+    }
     this.theme = theme;
     const assetsChanged = this.builtAssetsVersion !== this.assetsVersion || themeChanged;
     if (this.baseCols !== sim.building.cols || assetsChanged) this.buildBase();
@@ -318,8 +335,23 @@ export class Renderer {
 
   // =================================================================== frame
 
+  /** Posiciona a constelação (escreve ch.x/ch.y). Chamado pelo laço, após sim.update e antes da câmera. */
+  layoutNeural(now: number): void {
+    (this.neuralScene ??= new NeuralScene()).layout(this.sim, now);
+  }
+
+  /** Retângulo de mundo que envolve a constelação (tema "Cérebro"), para o enquadramento. null nos outros temas. */
+  neuralBounds(): { x: number; y: number; w: number; h: number } | null {
+    return this.theme === 'frinus' ? (this.neuralScene?.getBounds() ?? null) : null;
+  }
+
   frame(now: number, dt: number, opts: WorldOptions, sel: { agent: string | null; room: string | null; hover: string | null }): void {
     const { ctx, camera } = this;
+    // Tema "Cérebro": desenha a constelação neural e sai (sem o escritório).
+    if (this.theme === 'frinus') {
+      (this.neuralScene ??= new NeuralScene()).draw(ctx, camera, this.canvas, this.sim, now, dt, opts, sel, this.heads);
+      return;
+    }
     this.date.setTime(this.clock());
     this.dt = dt;
     this.updateCars(now, dt);
