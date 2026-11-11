@@ -647,6 +647,13 @@ function describeMcp(name: string, input: Record<string, unknown>): ActivityDesc
     if (/snapshot|read|get_page|find/.test(tool)) return make('browser', '🧭', tr('Lendo a página'));
     return make('browser', '🧭', tr('Navegador: {0}', [humanize(tool)]));
   }
+  if (/frinus/i.test(srv)) {
+    // Frinus é a memória de longo prazo do agente: rótulos amigáveis para o cliente leigo (POC Frinus Office).
+    if (tool === 'memory_store') return make('write', '🧠', tr('Guardando na memória'));
+    if (/^(memory_search|search_with_attention|memory_get_context)$/.test(tool)) return make('search', '🔎', tr('Consultando a memória'));
+    if (/^agent_(bootstrap|reorient)$/.test(tool)) return make('mcp', '☀️', tr('Acordando'));
+    return make('mcp', '💭', tr('Usando o Frinus'));
+  }
   if (/github/i.test(srv)) return make('mcp', '🐙', `GitHub: ${humanize(tool)}`);
   if (/gmail|mail/i.test(srv)) return make('mcp', '✉️', `E-mail: ${humanize(tool)}`);
   if (/drive|docs|notion|confluence/i.test(srv)) return make('mcp', '📄', `${srv}: ${humanize(tool)}`);
@@ -722,6 +729,9 @@ export function describeTool(name: string, rawInput: unknown): ActivityDescripti
     case 'Task': {
       const d = str(input.description);
       const type = str(input.subagent_type);
+      // Especialista Frinus: o `prompt` começa com o AGENT_ID (UUID); mostramos só a `description`
+      // como nome do especialista (ex.: "appsec-engineer · revisão") e nunca o UUID no detalhe.
+      if (type === 'frinus-specialist') return make('delegate', '👥', d || tr('Chamando um especialista'));
       return make('delegate', '👥', d ? tr('Delegando: {0}', [d]) : tr('Chamando um subagente'), [type, str(input.prompt)].filter(Boolean).join(' — '));
     }
     case 'Workflow':

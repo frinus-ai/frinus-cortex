@@ -152,6 +152,33 @@ describe('atividades', () => {
   });
 });
 
+describe('rótulos Frinus (POC Frinus Office)', () => {
+  it('ferramentas de memória do Frinus ganham rótulos amigáveis', () => {
+    expect(describeTool('mcp__frinus-mcp__memory_store', { content: 'x' })).toEqual({ kind: 'write', icon: '🧠', text: 'Guardando na memória' });
+    expect(describeTool('mcp__frinus-mcp__memory_search', { query: 'x' })).toEqual({ kind: 'search', icon: '🔎', text: 'Consultando a memória' });
+    expect(describeTool('mcp__frinus-mcp__search_with_attention', {})).toEqual({ kind: 'search', icon: '🔎', text: 'Consultando a memória' });
+    expect(describeTool('mcp__frinus-mcp__memory_get_context', {})).toEqual({ kind: 'search', icon: '🔎', text: 'Consultando a memória' });
+    expect(describeTool('mcp__frinus-mcp__agent_bootstrap', {})).toEqual({ kind: 'mcp', icon: '☀️', text: 'Acordando' });
+    expect(describeTool('mcp__frinus-mcp__agent_reorient', {})).toEqual({ kind: 'mcp', icon: '☀️', text: 'Acordando' });
+  });
+
+  it('qualquer outra ferramenta Frinus cai no rótulo genérico', () => {
+    expect(describeTool('mcp__frinus-mcp__task_update', { status: 'running' })).toEqual({ kind: 'mcp', icon: '💭', text: 'Usando o Frinus' });
+    expect(describeTool('mcp__frinus-mcp__skill_get', {})).toEqual({ kind: 'mcp', icon: '💭', text: 'Usando o Frinus' });
+  });
+
+  it('delegação a frinus-specialist mostra a description como nome do especialista, sem vazar o UUID', () => {
+    const d = describeTool('Agent', {
+      description: 'appsec-engineer · revisão',
+      subagent_type: 'frinus-specialist',
+      prompt: 'AGENT_ID: 5a876181-3ce2-407d-8109-b0e9eb9e8ee4\n\nRevise o código',
+    });
+    expect(d).toEqual({ kind: 'delegate', icon: '👥', text: 'appsec-engineer · revisão' });
+    expect(d.detail).toBeUndefined();
+    expect(describeTool('Agent', { subagent_type: 'frinus-specialist' })).toEqual({ kind: 'delegate', icon: '👥', text: 'Chamando um especialista' });
+  });
+});
+
 describe('shells', () => {
   it('rótulo do job: description (mascarada) ou resumo do comando; comando mascarado no detalhe', () => {
     expect(describeShellJob('Bash', { command: 'vendor/bin/phpunit', description: 'Rodar a suíte completa em grupos com phpunit' })).toEqual({
