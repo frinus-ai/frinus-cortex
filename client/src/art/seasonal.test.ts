@@ -24,7 +24,7 @@ describe('acessórios sazonais', () => {
     expect(appearance).toEqual(original);
   });
   it('mantém decorações dentro das folhas de desenho, com margem transparente', () => {
-    for (const kind of ['tree', 'gift', 'pumpkin', 'ghost', 'wreath', 'bat'] as const) {
+    for (const kind of ['tree', 'gift', 'pumpkin', 'ghost', 'wreath', 'bat', 'orb', 'shelf', 'crystal'] as const) {
       const { buf } = renderSeasonalProp(kind);
       const bounds = buf.bounds()!;
       expect(buf.countOpaque()).toBeGreaterThan(40);

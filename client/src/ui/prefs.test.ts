@@ -54,7 +54,7 @@ describe('preferências', () => {
     expect(() => savePrefs(broken, DEFAULT_PREFS)).not.toThrow();
   });
   it('extrai só as opções do mundo', () => {
-    expect(worldOptionsFrom({ ...DEFAULT_PREFS, daylight: 'day' })).toEqual({ showNames: true, bubbles: 'important', liveliness: 'normal', dayNight: false, daylight: 'day', theme: 'auto' });
+    expect(worldOptionsFrom({ ...DEFAULT_PREFS, daylight: 'day' })).toEqual({ showNames: true, bubbles: 'important', liveliness: 'normal', dayNight: false, daylight: 'day', theme: 'frinus' });
     expect(worldOptionsFrom({ ...DEFAULT_PREFS, daylight: 'night' })).toMatchObject({ dayNight: true, daylight: 'night' });
   });
   it('ciclo dia/noite: valida o modo e migra o interruptor antigo', () => {
@@ -65,10 +65,12 @@ describe('preferências', () => {
     expect(sanitizePrefs({ dayNight: true }).daylight).toBe('auto');
     expect(sanitizePrefs({ dayNight: false, daylight: 'night' }).daylight).toBe('night');
   });
-  it('temas: preserva preferências antigas e recupera valores inválidos', () => {
-    expect(sanitizePrefs({ daylight: 'night' })).toMatchObject({ theme: 'auto', daylight: 'night' });
-    expect(sanitizePrefs({ theme: 'invalid' }).theme).toBe('auto');
-    for (const theme of ['christmas', 'halloween', 'none', 'auto'] as const) {
+  it('temas: padrão Frinus "A Mente", preserva preferências e recupera valores inválidos', () => {
+    // Padrão deste fork: sem preferência salva vale o tema Frinus.
+    expect(DEFAULT_PREFS.theme).toBe('frinus');
+    expect(sanitizePrefs({ daylight: 'night' })).toMatchObject({ theme: 'frinus', daylight: 'night' });
+    expect(sanitizePrefs({ theme: 'invalid' }).theme).toBe('frinus');
+    for (const theme of ['frinus', 'christmas', 'halloween', 'none', 'auto'] as const) {
       const st = memoryStorage();
       savePrefs(st, { ...DEFAULT_PREFS, theme });
       expect(loadPrefs(st).theme).toBe(theme);

@@ -495,7 +495,7 @@ export type WorldErrorCode = (typeof WORLD_ERROR_CODES)[number];
 // 6.1 O que sobe do computador (WorldUplink)
 // ---------------------------------------------------------------------------------------------------------------
 
-export type WorldTheme = 'none' | 'halloween' | 'christmas';
+export type WorldTheme = 'none' | 'halloween' | 'christmas' | 'frinus';
 export type WorldAgentStatus = 'working' | 'waiting' | 'idle' | 'shell'; // done/offline = o agente some
 
 export interface WorldAgent {

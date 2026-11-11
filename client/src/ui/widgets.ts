@@ -2,7 +2,6 @@
 // de progresso.
 import type { AccountInfo, Activity, AgentInfo, AgentStatus, Provider } from '../../../shared/types';
 import { h, setAttr, setHidden, setStyleVar, setText, setTitle, setVariant } from './dom';
-import { WORDMARK } from './icons';
 import { shellDoneKind, shellLine, shellStage, statusLabel, type ShellWait } from './model';
 import { accountChipLabel, accountProvider, fallbackShort, showsProviderTag } from './provider';
 import { tr } from '../../../shared/i18n';
@@ -129,10 +128,7 @@ export function updateShellActivityLine(el: HTMLElement, wait: ShellWait, now: n
   );
 }
 
-/** Nome do produto como logotipo em pixels (o texto fica para leitores de tela). */
+/** Nome do produto no cabeçalho: "Frinus Office" (fork do Habblaud, tema "A Mente"). */
 export function wordmark(cls = 'ui-brand__name'): HTMLElement {
-  const el = h('span', { class: cls });
-  el.innerHTML = WORDMARK;
-  el.append(h('span', { class: 'ui-sr', text: 'Habblaud' }));
-  return el;
+  return h('span', { class: cls }, h('span', { class: 'ui-brand__name-fr', text: 'Frinus' }), h('span', { class: 'ui-brand__name-of', text: 'Office' }));
 }

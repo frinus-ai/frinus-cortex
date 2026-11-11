@@ -31,19 +31,23 @@ export function seasonalFurniture(theme: SeasonalTheme, kind: FurnitureKind, are
   if (kind === 'plant_tall') {
     const first = area.furniture.find((f) => f.kind === 'plant_tall');
     if (!first || hash32(first.id) !== seed) return null;
-    return prop(theme === 'christmas' ? 'tree' : seed % 3 === 0 ? 'ghost' : 'pumpkin');
+    if (theme === 'christmas') return prop('tree');
+    if (theme === 'frinus') return prop(area.kind === 'lounge' ? 'shelf' : 'orb');
+    return prop(seed % 3 === 0 ? 'ghost' : 'pumpkin');
   }
-  if (kind === 'plant_small') return prop(theme === 'christmas' ? 'gift' : 'pumpkin');
+  if (kind === 'plant_small') return prop(theme === 'christmas' ? 'gift' : theme === 'frinus' ? 'crystal' : 'pumpkin');
   return null;
 }
 
 export function seasonalRugColor(theme: SeasonalTheme, original: string): string {
-  return theme === 'christmas' ? '#a93649' : theme === 'halloween' ? '#60416f' : original;
+  return theme === 'christmas' ? '#a93649' : theme === 'halloween' ? '#60416f' : theme === 'frinus' ? '#5A32A8' : original;
 }
 
 export function seasonalWallStyle(theme: SeasonalTheme, original: WallStyle): WallStyle {
   if (theme === 'none' || original.pattern === 'glass') return original;
-  return { ...original, base: mix(original.base, theme === 'christmas' ? '#ffe3b4' : '#bc97d1', 0.18), trim: theme === 'christmas' ? '#4e7756' : '#725486' };
+  const tint = theme === 'christmas' ? '#ffe3b4' : theme === 'frinus' ? '#EFE9FB' : '#bc97d1';
+  const trim = theme === 'christmas' ? '#4e7756' : theme === 'frinus' ? '#6C3FC4' : '#725486';
+  return { ...original, base: mix(original.base, tint, 0.18), trim };
 }
 
 /** Motivos de tapete (cacheados junto com o piso). */
@@ -52,12 +56,20 @@ export function decorateSeasonalRug(ctx: CanvasRenderingContext2D, theme: Season
   const x = Math.round(rug.x), y = Math.round(rug.y), w = Math.floor(rug.w), h = Math.floor(rug.h);
   if (w < 25 || h < 16) return;
   ctx.save();
-  ctx.fillStyle = theme === 'christmas' ? '#ddb66e' : '#e5a457';
+  ctx.fillStyle = theme === 'christmas' ? '#ddb66e' : theme === 'frinus' ? '#E8B860' : '#e5a457';
   ctx.fillRect(x + 4, y + 4, w - 8, 1);
   ctx.fillRect(x + 4, y + h - 5, w - 8, 1);
   for (let cx = x + 14; cx < x + w - 10; cx += 28) {
     const cy = Math.round(y + h / 2);
-    if (theme === 'christmas') {
+    if (theme === 'frinus') {
+      // Infinito pequeno em âmbar (dois lóbulos + barra central).
+      for (const lobe of [-3, 3]) {
+        ctx.fillRect(cx + lobe - 1, cy - 1, 1, 3);
+        ctx.fillRect(cx + lobe, cy - 2, 1, 1);
+        ctx.fillRect(cx + lobe, cy + 2, 1, 1);
+      }
+      ctx.fillRect(cx - 2, cy, 5, 1);
+    } else if (theme === 'christmas') {
       ctx.fillRect(cx - 4, cy, 9, 1);
       ctx.fillRect(cx, cy - 4, 1, 9);
       for (const d of [-2, 2]) {
@@ -84,12 +96,12 @@ export function decorateSeasonalWall(ctx: CanvasRenderingContext2D, theme: Seaso
   for (let x = x0; x < end; x++) {
     if (wall.doorways?.some((d) => x >= d.x - 1 && x < d.x + d.w + 1)) continue;
     const sag = Math.round(Math.sin(((x - x0) % 48) / 48 * Math.PI) * 3);
-    ctx.fillStyle = theme === 'christmas' ? '#347653' : '#584068';
-    ctx.fillRect(x, y + sag, 1, theme === 'christmas' ? 3 : 1);
+    ctx.fillStyle = theme === 'christmas' ? '#347653' : theme === 'frinus' ? '#6C3FC4' : '#584068';
+    ctx.fillRect(x, y + sag, 1, theme === 'christmas' ? 3 : theme === 'frinus' ? 2 : 1);
     if ((x - x0) % 12 === 6) {
-      ctx.fillStyle = theme === 'christmas' ? '#f5d491' : '#eea24d';
+      ctx.fillStyle = theme === 'christmas' ? '#f5d491' : theme === 'frinus' ? '#E8B860' : '#eea24d';
       ctx.fillRect(x, y + sag + 3, 2, 3);
-      ctx.fillStyle = theme === 'christmas' ? '#fff0be' : '#ffd78a';
+      ctx.fillStyle = theme === 'christmas' ? '#fff0be' : theme === 'frinus' ? '#F7F4FD' : '#ffd78a';
       ctx.fillRect(x, y + sag + 3, 1, 1);
     }
   }
@@ -122,7 +134,7 @@ export function decorateSeasonalWall(ctx: CanvasRenderingContext2D, theme: Seaso
 /** Guirlandas nas molduras dos elevadores (sem cobrir a porta animada). */
 export function decorateElevator(ctx: CanvasRenderingContext2D, theme: SeasonalTheme, x: number, y: number): void {
   if (theme === 'none') return;
-  const sprite = prop(theme === 'christmas' ? 'wreath' : 'bat');
+  const sprite = prop(theme === 'christmas' ? 'wreath' : theme === 'frinus' ? 'orb' : 'bat');
   ctx.drawImage(sprite.canvas, Math.round(x - sprite.ax), Math.round(y - 19 - sprite.ay));
 }
 
@@ -134,7 +146,7 @@ function glowSprite(theme: SeasonalTheme): HTMLCanvasElement {
     canvas.width = canvas.height = 34;
     const ctx = canvas.getContext('2d')!;
     const glow = ctx.createRadialGradient(17, 17, 1, 17, 17, 17);
-    glow.addColorStop(0, theme === 'christmas' ? '#ffd58b' : '#d8a5ed');
+    glow.addColorStop(0, theme === 'christmas' ? '#ffd58b' : theme === 'frinus' ? '#cba6f0' : '#d8a5ed');
     glow.addColorStop(1, 'rgba(255,220,180,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, 34, 34);
@@ -158,7 +170,7 @@ export function drawSeasonalLights(ctx: CanvasRenderingContext2D, theme: Seasona
       ctx.globalAlpha = light * 0.3;
       ctx.drawImage(glowSprite(theme), Math.round(x - 17), wall.y - 8);
       ctx.globalAlpha = light * 0.85;
-      ctx.fillStyle = theme === 'christmas' ? '#ffe4a9' : '#ffd181';
+      ctx.fillStyle = theme === 'christmas' ? '#ffe4a9' : theme === 'frinus' ? '#E8B860' : '#ffd181';
       ctx.fillRect(Math.round(x), wall.y + 9, 2, 2);
     }
     ctx.restore();

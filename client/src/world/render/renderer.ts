@@ -674,7 +674,9 @@ export class Renderer {
   /** Placa com o nome (o texto nítido é escrito pelo overlay em espaço de tela). */
   private drawSign(vis: AreaVis, w: WallVis, slide: number): void {
     const { ctx } = this;
-    if (!vis.room && this.assets?.signage && vis.id === 'core:recepcao') {
+    // No tema Frinus "A Mente" a recepção usa a placa de texto ("Frinus", via overlay); nos demais, a placa
+    // baqueada do Habblaud.
+    if (this.theme !== 'frinus' && !vis.room && this.assets?.signage && vis.id === 'core:recepcao') {
       const a = this.assets.signage;
       const maxW = 5 * TILE;
       const maxH = 24;
@@ -698,7 +700,7 @@ export class Renderer {
   /** Retângulo (px de mundo) da área de texto da placa de uma área, se houver. */
   signRect(vis: AreaVis): { x: number; y: number; w: number; h: number } | null {
     if (!vis.sign) return null;
-    if (!vis.room && this.assets?.signage && vis.id === 'core:recepcao') return null;
+    if (this.theme !== 'frinus' && !vis.room && this.assets?.signage && vis.id === 'core:recepcao') return null;
     const s = wallSprites(this.art, 'sign', vis.sign.variant, 0, vis.sign.seed);
     if (!s) return null;
     const o = wallItemOrigin(vis.sign, s.base);

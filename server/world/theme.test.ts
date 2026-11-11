@@ -5,8 +5,11 @@ import { resolveWorldTheme } from './theme';
 const d = (m: number, day: number, h = 12) => new Date(2026, m - 1, day, h);
 
 describe('resolveWorldTheme', () => {
-  it('escolha fixa vai como está', () => {
-    for (const t of ['none', 'halloween', 'christmas'] as const) expect(resolveWorldTheme(t, d(7, 1))).toBe(t);
+  it('escolha fixa vai como está (inclui frinus, que ignora o calendário)', () => {
+    for (const t of ['none', 'halloween', 'christmas', 'frinus'] as const) {
+      expect(resolveWorldTheme(t, d(7, 1))).toBe(t);
+      expect(resolveWorldTheme(t, d(10, 15))).toBe(t);
+    }
   });
 
   it('automático: Halloween em outubro, Natal de 1/11 a 26/12, nenhum no resto (hora local)', () => {
@@ -25,8 +28,9 @@ describe('resolveWorldTheme', () => {
   });
 
   it('escolhas aceitas', () => {
-    expect([...WORLD_THEME_CHOICES]).toEqual(['auto', 'none', 'halloween', 'christmas']);
+    expect([...WORLD_THEME_CHOICES]).toEqual(['auto', 'none', 'halloween', 'christmas', 'frinus']);
     expect(isWorldThemeChoice('auto')).toBe(true);
+    expect(isWorldThemeChoice('frinus')).toBe(true);
     expect(isWorldThemeChoice('pascoa')).toBe(false);
     expect(isWorldThemeChoice(undefined)).toBe(false);
   });

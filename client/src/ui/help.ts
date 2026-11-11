@@ -160,6 +160,15 @@ export class HelpDialog {
         ),
         this.usageSection(),
         this.codexSection(),
+        h(
+          'section',
+          { class: 'ui-help__about' },
+          h('h3', { text: tr('Sobre') }),
+          h('p', {
+            class: 'ui-help__lead',
+            text: tr('Frinus Office — a interface visual do Frinus (tema "A Mente"). Baseado no Habblaud (MIT) por Márcio Junior.'),
+          }),
+        ),
       ),
     );
     // Clique no fundo (fora do conteúdo) fecha.

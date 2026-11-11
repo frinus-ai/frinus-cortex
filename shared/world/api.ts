@@ -121,7 +121,7 @@ import {
  * Tema escolhido em Configurações › Aparência, guardado em world.json (PUT /api/world/theme). O pacote leva o tema já
  * resolvido: o automático vira o tema do calendário (server/world/theme.ts).
  */
-export const WORLD_THEME_CHOICES = ['auto', 'none', 'halloween', 'christmas'] as const;
+export const WORLD_THEME_CHOICES = ['auto', 'none', 'halloween', 'christmas', 'frinus'] as const;
 export type WorldThemeChoice = 'auto' | WorldTheme;
 
 export function isWorldThemeChoice(v: unknown): v is WorldThemeChoice {

@@ -17,11 +17,13 @@ describe('tema do escritório', () => {
     expect(seasonalThemeFor(undefined, at(10, 13))).toBe('halloween');
   });
 
-  it('escolha fixa vale o ano todo', () => {
+  it('escolha fixa vale o ano todo (inclui Frinus "A Mente")', () => {
     for (const date of [at(1, 1), at(10, 13), at(12, 1)]) {
       expect(seasonalThemeFor('none', date)).toBe('none');
       expect(seasonalThemeFor('christmas', date)).toBe('christmas');
       expect(seasonalThemeFor('halloween', date)).toBe('halloween');
+      // 'frinus' é fixo: ignora o calendário (inclusive em outubro/dezembro).
+      expect(seasonalThemeFor('frinus', date)).toBe('frinus');
     }
   });
 });

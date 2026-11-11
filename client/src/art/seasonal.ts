@@ -2,7 +2,20 @@
 import { PixelBuf } from './core/pixbuf';
 import type { BufSprite } from './core/sprite';
 
-export type SeasonalProp = 'tree' | 'gift' | 'pumpkin' | 'ghost' | 'wreath' | 'bat';
+export type SeasonalProp = 'tree' | 'gift' | 'pumpkin' | 'ghost' | 'wreath' | 'bat' | 'orb' | 'shelf' | 'crystal';
+
+// Paleta do tema Frinus "A Mente".
+const FRINUS = {
+  roxo: '#6C3FC4',
+  roxo600: '#5A32A8',
+  roxoClaro: '#7a52d2',
+  lavanda: '#EFE9FB',
+  wash: '#F7F4FD',
+  ink: '#1A1A2E',
+  ink2: '#2b2442',
+  ambar: '#E8B860',
+  ambarClaro: '#F3D694',
+} as const;
 
 export function renderSeasonalProp(kind: SeasonalProp): BufSprite {
   const b = new PixelBuf(40, 64);
@@ -73,7 +86,7 @@ export function renderSeasonalProp(kind: SeasonalProp): BufSprite {
     rect(15, 55, 4, 4, '#c93945');
     rect(21, 55, 4, 4, '#c93945');
     rect(19, 54, 2, 4, '#f07368');
-  } else {
+  } else if (kind === 'bat') {
     rect(18, 51, 5, 6, '#47344f');
     rect(10, 50, 9, 4, '#47344f');
     rect(22, 50, 9, 4, '#47344f');
@@ -83,6 +96,64 @@ export function renderSeasonalProp(kind: SeasonalProp): BufSprite {
     rect(25, 53, 3, 3, '#47344f');
     b.set(19, 52, '#f5b95f');
     b.set(21, 52, '#f5b95f');
+  } else if (kind === 'orb') {
+    // Placa/orbe Frinus da recepção: esfera roxa sobre pedestal, com o símbolo do infinito em âmbar.
+    b.shadow(20, 58, 9, 2, '#252c39', 0.22);
+    rect(15, 52, 11, 6, FRINUS.ink2); // pedestal
+    rect(16, 51, 9, 1, '#3a3160');
+    rect(14, 57, 13, 2, FRINUS.ink);
+    rect(18, 46, 5, 6, '#4a2f86'); // haste
+    b.ellipse(20, 33, 11, 11, FRINUS.roxo600); // esfera (sombra)
+    b.ellipse(19, 32, 9, 9, FRINUS.roxo); // lado iluminado
+    b.ellipse(16, 29, 2, 2, FRINUS.lavanda); // brilho
+    b.set(15, 28, FRINUS.wash);
+    // Infinito em âmbar (8 deitado) centrado em (20,34).
+    const inf: Array<[number, number]> = [
+      [-4, -1], [-3, -1], [-5, 0], [-2, 0], [-4, 1], [-3, 1],
+      [-1, 0], [0, 0], [1, 0],
+      [3, -1], [4, -1], [2, 0], [5, 0], [3, 1], [4, 1],
+    ];
+    for (const [dx, dy] of inf) b.set(20 + dx, 34 + dy, FRINUS.ambar);
+  } else if (kind === 'shelf') {
+    // Estante de "memórias": lombadas roxas e uma âmbar por prateleira.
+    b.shadow(20, 58, 12, 2, '#252c39', 0.22);
+    rect(8, 13, 25, 45, FRINUS.ink2); // corpo
+    rect(8, 13, 25, 2, '#3b3360'); // topo
+    rect(8, 56, 25, 2, '#1b1730'); // base
+    rect(8, 13, 2, 45, '#201b35'); // montante esq.
+    rect(31, 13, 2, 45, '#201b35'); // montante dir.
+    const shades = [FRINUS.roxo, FRINUS.roxo600, FRINUS.roxoClaro, FRINUS.roxo600, FRINUS.roxo, FRINUS.ambar];
+    for (const ry of [17, 30, 43]) {
+      rect(10, ry + 11, 21, 2, '#15111d'); // tábua
+      let x = 11;
+      let i = ry % 3;
+      while (x <= 29) {
+        const sw = 2 + ((x + ry) % 2); // 2 ou 3 px
+        if (x + sw > 30) break;
+        const c = shades[i % shades.length];
+        rect(x, ry + 1, sw, 10, c);
+        b.hline(x, x + sw - 1, ry + 1, c === FRINUS.ambar ? FRINUS.ambarClaro : '#cdbbf0'); // topo das lombadas
+        x += sw + 1;
+        i++;
+      }
+    }
+  } else {
+    // crystal — cristal de memória roxo sobre base, com um brilho âmbar no núcleo.
+    b.shadow(20, 58, 7, 2, '#252c39', 0.2);
+    rect(15, 54, 11, 4, FRINUS.ink2); // base
+    rect(14, 57, 13, 1, FRINUS.ink);
+    const cx = 20, top = 32, bot = 54, mid = 41, maxW = 7;
+    for (let yy = top; yy <= bot; yy++) {
+      const w = yy <= mid ? Math.round((maxW * (yy - top)) / (mid - top)) : Math.round((maxW * (bot - yy)) / (bot - mid));
+      if (w <= 0) continue;
+      rect(cx - w, yy, 2 * w + 1, 1, FRINUS.roxo); // corpo
+      rect(cx + 1, yy, w, 1, FRINUS.roxo600); // faceta escura (direita)
+      b.set(cx - w, yy, FRINUS.roxoClaro); // aresta iluminada (esquerda)
+    }
+    b.line(cx - 1, 35, cx - 4, 47, FRINUS.lavanda); // faceta de brilho
+    b.set(cx, 30, FRINUS.lavanda); // ápice
+    b.set(cx - 1, 43, FRINUS.ambar); // núcleo de memória
+    b.set(cx, 44, FRINUS.ambarClaro);
   }
   b.outline();
   return { buf: b, ax: 20, ay: 60 };

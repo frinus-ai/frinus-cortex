@@ -143,14 +143,14 @@ export class SettingsPopover implements UiComponent {
     this.daylight.row.append(h('span', { class: 'ui-set__hint', text: tr('Automático: céu, luzes e sol nas janelas seguem a hora local.') }));
     this.theme = segmented<UiPrefs['theme']>(
       tr('Tema do escritório'),
-      [['auto', tr('Automático')], ['none', tr('Nenhum')], ['christmas', tr('Natal')], ['halloween', tr('Halloween')]],
+      [['frinus', tr('A Mente')], ['auto', tr('Automático')], ['none', tr('Nenhum')], ['christmas', tr('Natal')], ['halloween', tr('Halloween')]],
       (v) => {
         ctx.updatePrefs({ theme: v });
         // Com o World ligado e a conta aprovada, o tema também vai para o prédio (clicar de novo reenvia).
         void this.world.onThemePicked(v);
       },
     );
-    this.theme.row.append(h('span', { class: 'ui-set__hint', text: tr('Automático: Halloween em outubro e Natal de 1º de novembro a 26 de dezembro; no resto do ano, o visual original. Nenhum: sempre o original.') }));
+    this.theme.row.append(h('span', { class: 'ui-set__hint', text: tr('A Mente: o visual roxo/lavanda do Frinus (padrão). Automático: Halloween em outubro e Natal de 1º de novembro a 26 de dezembro; no resto do ano, o visual original. Nenhum: sempre o original.') }));
     this.soundGroup = new SoundSettingsGroup(ctx, sound);
 
     // Nomes dos idiomas sempre na própria língua, para quem não entende o idioma atual achar o seu.
