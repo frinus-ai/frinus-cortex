@@ -21,10 +21,27 @@ frinus/bin/frinus-office   # sobe em http://127.0.0.1:4748
   (`HABBLAUD_UPDATE_CHECK=0`); sem `HABBLAUD_REMOTE_*`.
 - **Lançador Frinus**: `HABBLAUD_CLAUDE_BIN=frinus/bin/frinus-claude`, que roda
   `claude --agent frinus "$@"` — todo "Novo agente" nasce como o orquestrador com memória.
-- **Conta isolada**: observa e usa só `~/.claude-rdx`
-  (`HABBLAUD_CLAUDE_DIRS` + `FRINUS_OFFICE_CLAUDE_DIR` → `CLAUDE_CONFIG_DIR`).
+- **Multi-conta (padrão)**: o cliente pode ter várias contas (básico ou avançado). Sem
+  `HABBLAUD_CLAUDE_DIRS`, o escritório descobre sozinho todas as pastas `~/.claude*` (com
+  `projects/` ou `sessions/`); `HABBLAUD_ACCOUNTS` só dá nome/sigla a cada uma. Cada sala/conta
+  abre o `frinus` **na sua própria conta**: ao assumir ou abrir "Nova sessão", o Habblaud exporta
+  o `CLAUDE_CONFIG_DIR` da conta escolhida (`server/pty/manager.ts`) e o `frinus-claude` respeita
+  (não sobrescreve). **Conta única** é só um caso particular: deixar uma só pasta `~/.claude*` ou,
+  no limite, definir `FRINUS_OFFICE_CLAUDE_DIR` (fallback usado apenas quando o chamador não
+  escolheu conta).
 - **Estado separado** do Habblaud de produção: `HABBLAUD_DATA_DIR=~/.frinus-office`
   (o Habblaud padrão usa `~/.habblaud`).
+
+### Ressalva multi-conta — "Novo agente" em segundo plano
+
+O **"Assumir" / "Nova sessão"** no terminal embutido (PTY, `server/pty/manager.ts`) escolhe a
+conta certa e exporta o `CLAUDE_CONFIG_DIR` dela — multi-conta funciona por aí. Já o **"Novo
+agente"** em segundo plano (`server/spawn/spawn.ts`, `claude --bg`) **não** carrega conta: o
+`SpawnRequest` só tem `{folder, prompt}` e o `createCliRunner` roda o `claude` herdando o ambiente
+do servidor, sem setar `CLAUDE_CONFIG_DIR`. Hoje, portanto, um "Novo agente" nasce na conta padrão
+(`~/.claude`), não na conta da sala. É uma lacuna **do Habblaud** (upstream), não do fork. O que
+faltaria: incluir `account` no `SpawnRequest`/`parseSpawn` e, no `createCliRunner`, injetar
+`env.CLAUDE_CONFIG_DIR` da conta escolhida (igual ao manager). Fora do escopo desta POC.
 
 ## Pasta de trabalho padrão (~/Frinus)
 

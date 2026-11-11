@@ -22,8 +22,12 @@
 # `--agent` nesse caso.
 set -euo pipefail
 
-# Isola a conta do Claude Code do cliente, se configurado (office.env define isto).
-if [ -n "${FRINUS_OFFICE_CLAUDE_DIR:-}" ]; then
+# Multi-conta: respeita a conta escolhida pelo escritório. Ao "Assumir"/abrir "Nova sessão"
+# numa sala, o Habblaud já exporta CLAUDE_CONFIG_DIR da conta daquela sala (server/pty/manager.ts),
+# então cada conta abre o frinus NA SUA PRÓPRIA conta. Nunca sobrescrevemos isso.
+# O FRINUS_OFFICE_CLAUDE_DIR (opcional, normalmente ausente) só entra como padrão quando o
+# chamador NÃO definiu a conta — caso particular de conta única.
+if [ -z "${CLAUDE_CONFIG_DIR:-}" ] && [ -n "${FRINUS_OFFICE_CLAUDE_DIR:-}" ]; then
   export CLAUDE_CONFIG_DIR="$FRINUS_OFFICE_CLAUDE_DIR"
 fi
 
