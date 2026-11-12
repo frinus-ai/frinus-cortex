@@ -73,21 +73,7 @@ export class FeedPanel implements UiComponent {
       ctx.invalidate();
     });
     this.appendPending(ctx.store.feed.slice(-VISIBLE));
-    // Partidas e apostas resolvidas no escritório (vida social) entram no feed como eventos locais.
-    ctx.world.onSocialEvent?.((e) => {
-      const a = ctx.agent(e.agentId);
-      if (!a) return;
-      this.appendPending([{
-        id: e.id,
-        agentId: a.id,
-        roomId: a.roomId,
-        agentName: a.name,
-        roomName: e.place,
-        account: a.account,
-        activity: { id: e.id, kind: 'other', icon: e.icon, text: e.text, at: e.at },
-      }]);
-      ctx.invalidate();
-    });
+    // Frinus Office: a camada de jogo (partidas e apostas da "vida social") não entra no feed.
   }
 
   render(): void {

@@ -831,11 +831,35 @@ function fitLabel(prefix: string, label: string | undefined, suffix = ''): strin
   return `${prefix}${truncate(label, room)}${suffix}`;
 }
 
+/**
+ * Rótulo de erro de uma ferramenta MCP (mcp__servidor__tool): humaniza o nome cru, reaproveitando os rótulos
+ * amigáveis do Frinus (ver describeMcp). Ex.: mcp__frinus-mcp__memory_search -> "Erro ao consultar a memória".
+ */
+function mcpErrorLabel(name: string): string {
+  const [, server = '', ...rest] = name.split('__');
+  const tool = rest.join('__');
+  const srv = server.replace(/^claude_ai_/, '');
+  if (/frinus/i.test(srv)) {
+    if (tool === 'memory_store') return tr('Erro ao guardar na memória');
+    if (/^(memory_search|search_with_attention|memory_get_context)$/.test(tool)) return tr('Erro ao consultar a memória');
+    if (/^agent_(bootstrap|reorient)$/.test(tool)) return tr('Erro ao acordar');
+    return tr('Erro ao usar o Frinus');
+  }
+  return tr('Erro em {0}', [srv ? `${srv}: ${humanize(tool)}` : name]);
+}
+
+/** Rótulo de erro de uma ferramenta: ferramentas MCP passam por mcpErrorLabel; as demais ficam pelo nome cru. */
+function errorLabel(tool?: string): string {
+  if (!tool) return tr('Algo deu errado');
+  if (tool.startsWith('mcp__')) return mcpErrorLabel(tool);
+  return tr('Erro em {0}', [tool]);
+}
+
 export const SPECIAL = {
   think: (): ActivityDescription => make('think', '💭', tr('Pensando…')),
   respond: (text?: string): ActivityDescription => make('respond', '💬', tr('Escrevendo a resposta'), text),
   turnDone: (ms?: number): ActivityDescription => make('done', '✅', ms ? tr('Concluiu em {0}', [formatDuration(ms)]) : tr('Concluiu')),
-  error: (tool?: string, detail?: string): ActivityDescription => make('error', '⚠️', tool ? tr('Erro em {0}', [tool]) : tr('Algo deu errado'), detail),
+  error: (tool?: string, detail?: string): ActivityDescription => make('error', '⚠️', errorLabel(tool), detail),
   interrupted: (): ActivityDescription => make('wait', '✋', tr('Interrompido por você')),
   compact: (): ActivityDescription => make('compact', '🧹', tr('Organizando a memória (compactando)')),
   waiting: (reason?: string): ActivityDescription => make('wait', '✋', reason ? tr('Precisa de você: {0}', [reason]) : tr('Precisa de você')),

@@ -213,6 +213,7 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
   ctx.terminals = router;
   // Entregas: o que os agentes terminaram (primeiro botão do grupo: é o que mais se usa pelo celular).
   const deliveries = new Deliveries(ctx, terminal);
+  ctx.deliveries = () => deliveries.known;
   topbar.panelGroup.prepend(deliveries.button);
   // Links com ?agent= / ?delivery= (abrem o agente ou a entrega ao carregar).
   const openLink = (url: URL) => {

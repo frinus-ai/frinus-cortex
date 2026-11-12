@@ -460,6 +460,7 @@ class LineParser {
     remember(s.pendingTools, id, name, 128);
     this.changed();
     this.push(describeTool(name, input), { suffix, tool: name, toolUseId: id, msgId });
+    countFrinusContribution(s.stats, name);
     const gh = githubCallOf(name, input);
     if (gh) remember(s.github, id, gh, 64);
 
@@ -822,6 +823,19 @@ export async function scanPrefix(
   return { state, signals, activities: activities.slice(-keep), shellEvents };
 }
 
+/**
+ * Frinus Office: conta a contribuição do agente à memória de longo prazo pelo nome da ferramenta MCP
+ * (mcp__frinus-mcp__*). Alimenta o painel "Contribuição" da gaveta. Ver shared/activity.ts › describeMcp.
+ */
+function countFrinusContribution(stats: AgentStats, name: string): void {
+  if (!name.startsWith('mcp__')) return;
+  const [, server = '', ...rest] = name.split('__');
+  if (!/frinus/i.test(server.replace(/^claude_ai_/, ''))) return;
+  const tool = rest.join('__');
+  if (tool === 'memory_store') stats.memoriesStored = (stats.memoriesStored ?? 0) + 1;
+  else if (tool === 'memory_search' || tool === 'search_with_attention') stats.memorySearches = (stats.memorySearches ?? 0) + 1;
+}
+
 /** Mescla o que veio do prefixo do arquivo no estado montado a partir da janela final. */
 export function mergePrefix(state: TranscriptState, prefix: TranscriptState): void {
   state.customTitle ??= prefix.customTitle;
@@ -838,6 +852,8 @@ export function mergePrefix(state: TranscriptState, prefix: TranscriptState): vo
   state.stats.tokensIn += prefix.stats.tokensIn;
   state.stats.tokensOut += prefix.stats.tokensOut;
   state.stats.subagents += prefix.stats.subagents;
+  if (prefix.stats.memoriesStored) state.stats.memoriesStored = (state.stats.memoriesStored ?? 0) + prefix.stats.memoriesStored;
+  if (prefix.stats.memorySearches) state.stats.memorySearches = (state.stats.memorySearches ?? 0) + prefix.stats.memorySearches;
   if (!state.costSeen && prefix.costSeen) {
     state.costSeen = true;
     if (prefix.stats.costUSD !== undefined) state.stats.costUSD = prefix.stats.costUSD;

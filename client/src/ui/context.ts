@@ -1,5 +1,5 @@
 // Contexto compartilhado entre os componentes da interface.
-import type { AccountInfo, AgentInfo } from '../../../shared/types';
+import type { AccountInfo, AgentInfo, DeliveryInfo } from '../../../shared/types';
 import type { OfficeStore } from '../net/store';
 import type { Selection, WorldApi } from '../world/api';
 import type { UiPrefs } from './prefs';
@@ -36,6 +36,8 @@ export interface UiContext {
   readonly store: OfficeStore;
   /** Janela de terminal (definida depois que os painéis existem). */
   terminals?: TerminalRouter;
+  /** Entregas conhecidas agora (painel de Entregas; definido depois que ele existe). Frinus Office: contador "Entregas". */
+  deliveries?(): readonly DeliveryInfo[];
   readonly world: WorldApi;
   readonly root: HTMLElement;
   readonly prefs: Readonly<UiPrefs>;

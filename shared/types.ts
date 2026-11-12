@@ -125,6 +125,10 @@ export interface AgentStats {
   linesRemoved?: number;
   /** Total de subagentes disparados por este agente. */
   subagents: number;
+  /** Frinus Office: memórias gravadas na memória de longo prazo (mcp__frinus-mcp__memory_store). */
+  memoriesStored?: number;
+  /** Frinus Office: consultas à memória (mcp__frinus-mcp__memory_search / search_with_attention). */
+  memorySearches?: number;
 }
 
 export interface AgentInfo {

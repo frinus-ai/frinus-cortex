@@ -8,10 +8,37 @@ import { NAME_POOL } from '../../shared/names';
 import { setQuiet } from '../log';
 import { tempDir } from '../test/fixtures';
 import { NameStore } from './names';
-import { DONE_GRACE_MS, Office, OFFLINE_GRACE_MS, SNAPSHOT_RECENT } from './office';
+import { DONE_GRACE_MS, FRINUS_MAIN_NAME, Office, OFFLINE_GRACE_MS, SNAPSHOT_RECENT, specialistName } from './office';
 import { normalizeCwd, roomDisplayNames, SlotAllocator } from './rooms';
 
 setQuiet(true);
+
+describe('specialistName (Frinus Office)', () => {
+  it('frinus-specialist: usa o trecho da description antes de " · " como nome do especialista', () => {
+    expect(specialistName('frinus-specialist', 'appsec-engineer · revisão de segurança')).toBe('appsec-engineer');
+    expect(specialistName('frinus-specialist', 'backend-python-memory · ajustar busca')).toBe('backend-python-memory');
+  });
+
+  it('frinus-specialist sem " · ": usa a description inteira (aparada)', () => {
+    expect(specialistName('frinus-specialist', '  devops-aws-k8s  ')).toBe('devops-aws-k8s');
+  });
+
+  it('frinus-specialist sem título: cai no próprio papel', () => {
+    expect(specialistName('frinus-specialist')).toBe('frinus-specialist');
+    expect(specialistName('frinus-specialist', '')).toBe('frinus-specialist');
+  });
+
+  it('outros tipos de subagente (Explore, Plan, fork, general-purpose): o nome é o próprio tipo', () => {
+    expect(specialistName('Explore', 'buscar padrões · no código')).toBe('Explore');
+    expect(specialistName('Plan')).toBe('Plan');
+    expect(specialistName('fork', 'tarefa paralela')).toBe('fork');
+  });
+
+  it('nome do especialista muito longo é cortado em 40 caracteres', () => {
+    const long = 'a'.repeat(60);
+    expect(specialistName('frinus-specialist', `${long} · tarefa`)).toBe('a'.repeat(40));
+  });
+});
 
 describe('SlotAllocator', () => {
   it('menor slot livre, estável enquanto a sala existe', () => {
@@ -524,7 +551,8 @@ describe('Office: personagem do projeto', () => {
     office.closeMain('acc:1');
     advance(5_000);
     office.addMain(main('acc:2', 's2', '/p/api', now()));
-    expect(office.get('acc:2')).toMatchObject({ name: 'Zé Backend', seed: 42, parts, custom: true });
+    // Frinus Office: a aparência do personagem da sala volta (seed, peças, custom), mas o nome é sempre "Frinus".
+    expect(office.get('acc:2')).toMatchObject({ name: FRINUS_MAIN_NAME, seed: 42, parts, custom: true });
   });
 
   it('segunda sessão ao mesmo tempo na mesma sala cai no sorteio', () => {
@@ -648,7 +676,7 @@ describe('Office: personagem do projeto', () => {
         after.office.addMain(main('acc:1', 's1', '/p/api', after.now()));
         expect(after.office.get('acc:2')).toMatchObject({ name: drawn, seed: hash32('acc:2') });
         expect(after.office.get('acc:2')!.custom).toBeUndefined();
-        expect(after.office.get('acc:1')).toMatchObject({ name: 'Zé Backend', seed: 42, parts, custom: true });
+        expect(after.office.get('acc:1')).toMatchObject({ name: FRINUS_MAIN_NAME, seed: 42, parts, custom: true });
         expect(after.names.character('/p/api')?.owner).toBe('s1');
         after.names.flush();
       } finally {
@@ -685,7 +713,7 @@ describe('Office: personagem do projeto', () => {
         office.tick();
         const after = restart(names, file);
         after.office.addMain(main('acc:3', 's3', '/p/api', after.now()));
-        expect(after.office.get('acc:3')).toMatchObject({ name: 'Zé Backend', seed: 42, parts, custom: true });
+        expect(after.office.get('acc:3')).toMatchObject({ name: FRINUS_MAIN_NAME, seed: 42, parts, custom: true });
         expect(after.names.character('/p/api')?.owner).toBe('s3');
         after.names.flush();
       } finally {
@@ -710,7 +738,7 @@ describe('Office: personagem do projeto', () => {
         names.load();
         const { office, now } = makeOffice(names);
         office.addMain(main('acc:2', 's2', '/p/api', now()));
-        expect(office.get('acc:2')).toMatchObject({ name: 'Zé Backend', seed: 42, custom: true });
+        expect(office.get('acc:2')).toMatchObject({ name: FRINUS_MAIN_NAME, seed: 42, custom: true });
         expect(names.character('/p/api')?.owner).toBe('s2');
         names.flush();
       } finally {
@@ -729,7 +757,7 @@ describe('Office: personagem do projeto', () => {
         after.office.addMain(main('acc:2', 's2', '/p/api', after.now()));
         after.office.addMain(main('acc:1', 's1b', '/p/api', after.now()));
         expect(after.office.get('acc:2')!.name).toBe(drawn);
-        expect(after.office.get('acc:1')).toMatchObject({ name: 'Zé Backend', custom: true });
+        expect(after.office.get('acc:1')).toMatchObject({ name: FRINUS_MAIN_NAME, custom: true });
         after.names.flush();
       } finally {
         tmp.cleanup();
@@ -747,16 +775,17 @@ describe('Office: personagem do projeto', () => {
         advance(OFFLINE_GRACE_MS + 1);
         office.tick();
         office.addMain(main('acc:1', 's1', '/p/api', now()));
-        expect(office.get('acc:1')).toMatchObject({ name: 'Zé', custom: true });
+        // Frinus Office: a aparência do personagem da sala volta, mas o nome exibido é sempre "Frinus".
+        expect(office.get('acc:1')).toMatchObject({ name: FRINUS_MAIN_NAME, custom: true });
         office.addMain(main('acc:2', 's2', '/p/api', now()));
         expect(office.setCharacter('acc:2', { name: 'Bia', seed: 3, parts: {} })).toEqual({ result: 'ok' });
-        expect(office.get('acc:1')!.name).toBe('Zé');
+        expect(office.get('acc:1')!.name).toBe(FRINUS_MAIN_NAME);
         expect(office.get('acc:1')!.custom).toBeUndefined();
         const after = restart(names, file);
         after.office.addMain(main('acc:1', 's1', '/p/api', after.now()));
         after.office.addMain(main('acc:2', 's2', '/p/api', after.now()));
-        expect(after.office.get('acc:1')!.name).toBe('Zé');
-        expect(after.office.get('acc:2')).toMatchObject({ name: 'Bia', custom: true });
+        expect(after.office.get('acc:1')!.name).toBe(FRINUS_MAIN_NAME);
+        expect(after.office.get('acc:2')).toMatchObject({ name: FRINUS_MAIN_NAME, custom: true });
         after.names.flush();
       } finally {
         tmp.cleanup();

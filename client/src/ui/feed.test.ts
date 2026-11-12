@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AgentInfo, FeedItem } from '../../../shared/types';
-import type { SocialEvent } from '../world/api';
 import type { UiContext } from './context';
 import { FeedPanel } from './feed';
 
@@ -68,20 +67,20 @@ function item(id: string, a: AgentInfo): FeedItem {
 let elements: Element[];
 function panel(feed: FeedItem[] = [], agents: AgentInfo[] = []) {
   let receive!: (fresh: FeedItem[]) => void;
-  let social!: (e: SocialEvent) => void;
   const snapshot = { agents, rooms: [] };
   const prefs = { hiddenAccounts: [] as string[] };
   let open = true;
+  // Frinus Office: o feed não ingere mais eventos da "vida social" (camada de jogo desligada), só o fluxo SSE.
   const ctx = {
     store: { feed, snapshot, on: (_event: string, cb: typeof receive) => { receive = cb; } },
-    world: { onSocialEvent: (cb: typeof social) => { social = cb; } },
+    world: {},
     prefs, agent: (id: string) => snapshot.agents.find((a) => a.id === id), account: () => undefined,
     invalidate: () => {}, togglePanel: () => {}, isPanelOpen: () => open,
   } as unknown as UiContext;
   const view = new FeedPanel(ctx);
   view.render();
   const el = (name: string) => elements.find((e) => e.className === name)!;
-  return { view, receive: (fresh: FeedItem[]) => receive(fresh), social: (e: SocialEvent) => social(e), snapshot, prefs, close: () => { open = false; },
+  return { view, receive: (fresh: FeedItem[]) => receive(fresh), snapshot, prefs, close: () => { open = false; },
     scroller: el('ui-feed__scroll'), list: el('ui-feed__list'), pill: el('ui-feed__new') };
 }
 
@@ -94,7 +93,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('FeedPanel pausado', () => {
-  it.each(['SSE', 'social'])('guarda só os 50 eventos mais novos de %s, sem perder a contagem por conta', (source) => {
+  it('guarda só os 50 eventos mais novos do SSE, sem perder a contagem por conta', () => {
     const shown = agent('visível');
     const hidden = agent('oculto', '.claude-2');
     const old = item('antes', shown);
@@ -102,8 +101,7 @@ describe('FeedPanel pausado', () => {
     p.scroller.scrollTop = 0;
     p.scroller.fire('scroll');
     const fresh = Array.from({ length: 120 }, (_, i) => item(`novo-${i}`, i < 70 ? shown : hidden));
-    if (source === 'SSE') p.receive(fresh);
-    else for (const f of fresh) p.social({ id: f.id, agentId: f.agentId, at: f.activity.at, icon: f.activity.icon, text: f.activity.text, place: f.roomName });
+    p.receive(fresh);
     // A retenção é observada só para comprovar o teto de memória, além da saída do painel.
     const retained = (p.view as unknown as { pending: FeedItem[] }).pending;
     expect(retained).toHaveLength(50);
@@ -152,6 +150,7 @@ describe('FeedPanel pausado', () => {
     p.view.render();
     expect([...meta.keys()]).toEqual([...retainedIds.slice(1), 'sem-evento']);
     expect(p.list.children).toHaveLength(50);
-    expect(p.list.children[0].firstElementChild!.children[1].dataset.sig).toContain('1|f|main|');
+    // Frinus Office: o avatar não tem rosto; a assinatura é só o tipo (sessão principal × especialista).
+    expect(p.list.children[0].firstElementChild!.children[1].dataset.sig).toBe('main');
   });
 });

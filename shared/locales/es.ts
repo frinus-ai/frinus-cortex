@@ -3274,4 +3274,22 @@ export const ES: Readonly<Record<string, string>> = {
   "Carimbo deixado na portaria: {0}": "Sello dejado en la recepción: {0}",
   "Entre no prédio ou chegue mais perto da porta para carimbar.": "Entra al edificio o acércate más a la puerta para sellar.",
   "O carimbo não foi deixado. Tente de novo.": "El sello no se dejó. Inténtalo de nuevo.",
+
+  // client/src/ui/contribution.ts (Frinus Office)
+  "Contribuição": "Contribución",
+  "Memórias gravadas": "Memorias guardadas",
+  "Fatos e aprendizados que o agente guardou na memória de longo prazo do Frinus.": "Hechos y aprendizajes que el agente guardó en la memoria de largo plazo de Frinus.",
+  "Consultas à memória": "Consultas a la memoria",
+  "Vezes que o agente buscou na memória do Frinus antes de agir.": "Veces que el agente consultó la memoria de Frinus antes de actuar.",
+  "Especialistas acionados": "Especialistas convocados",
+  "Especialistas do time que o agente acionou para ajudar nesta sessão.": "Especialistas del equipo que el agente convocó para ayudar en esta sesión.",
+  "Tarefas concluídas": "Tareas completadas",
+  "Tarefas da lista do agente já finalizadas nesta sessão.": "Tareas de la lista del agente ya finalizadas en esta sesión.",
+  "Pedidos que o agente terminou e entregou.": "Pedidos que el agente terminó y entregó.",
+
+  // shared/activity.ts (rótulos de erro de ferramenta MCP do Frinus)
+  "Erro ao guardar na memória": "Error al guardar en la memoria",
+  "Erro ao consultar a memória": "Error al consultar la memoria",
+  "Erro ao acordar": "Error al despertar",
+  "Erro ao usar o Frinus": "Error al usar Frinus",
 };

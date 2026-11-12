@@ -122,6 +122,10 @@ export class Deliveries implements UiComponent {
   private readonly nextBtn: HTMLButtonElement;
   private readonly toast: HTMLButtonElement;
   private list: DeliveryInfo[] = [];
+  /** Entregas conhecidas agora (lido pelo painel "Contribuição" da gaveta via ctx.deliveries). */
+  get known(): readonly DeliveryInfo[] {
+    return this.list;
+  }
   private seenAt = readSeen();
   private newestKnown = 0;
   private loading = false;

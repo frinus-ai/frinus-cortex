@@ -109,6 +109,19 @@ export interface MainInput {
   waitingFor?: string;
 }
 
+/** Nome fixo da sessão principal no Frinus Office. */
+export const FRINUS_MAIN_NAME = 'Frinus';
+
+/**
+ * Nome do especialista de um subagente. Delegações via frinus-specialist trazem a description no formato
+ * "<especialista> · <tarefa>"; nos demais tipos (Explore, general-purpose, fork…) o próprio tipo é o nome.
+ */
+export function specialistName(role: string, title?: string): string {
+  const head = title?.split(' · ')[0]?.trim();
+  if (role === 'frinus-specialist' && head) return head.slice(0, 40);
+  return role;
+}
+
 export interface SubInput {
   id: string;
   parentId: string;
@@ -332,7 +345,8 @@ export class Office {
       id: p.id,
       kind: 'main',
       roomId,
-      name: person.name,
+      // Frinus Office: toda sessão principal é o orquestrador Frinus (sem nome de pessoa).
+      name: FRINUS_MAIN_NAME,
       look: person.look,
       role: p.role,
       sessionId: p.sessionId,
@@ -595,7 +609,8 @@ export class Office {
       kind: 'sub',
       parentId: p.parentId,
       roomId: parent.info.roomId,
-      name: person.name,
+      // Frinus Office: o subagente leva o nome do especialista do time, não um nome de pessoa.
+      name: specialistName(p.role, p.title),
       look: person.look,
       role: p.role,
       sessionId: p.sessionId,
@@ -853,7 +868,8 @@ export class Office {
     if (owner === undefined || owner === info.sessionId) this.deps.names.clearCharacter(info.roomId);
     if (info.custom) {
       const person = this.deps.names.assign(info.sessionId, this.takenNames(id));
-      info.name = person.name;
+      // Frinus Office: a sessão principal volta a ser "Frinus" (sem nome de pessoa), como em addMain.
+      info.name = FRINUS_MAIN_NAME;
       info.look = person.look;
       info.seed = hash32(id);
       delete info.parts;

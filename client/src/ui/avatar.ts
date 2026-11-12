@@ -1,28 +1,10 @@
-// Avatares dos agentes para a UI: gerados pelo módulo de arte uma única vez e reaproveitados como data URL.
-import { partsKey } from '../../../shared/appearance';
+// Avatares dos agentes para a UI. No Frinus Office não há rosto: orbe com a logo (sessão) ou neurônio (especialista).
 import type { AgentInfo } from '../../../shared/types';
-import { avatarCanvas } from '../art';
 import { h } from './dom';
-
-const cache = new Map<string, { url: string; w: number; h: number }>();
 
 type AvatarSource = Pick<AgentInfo, 'seed' | 'look' | 'kind' | 'parts'>;
 
-function avatarData(agent: AvatarSource, scale: number): { url: string; w: number; h: number } {
-  const key = `${agent.seed}|${agent.look}|${agent.kind}|${scale}|${partsKey(agent.parts)}`;
-  let entry = cache.get(key);
-  if (!entry) {
-    const c = avatarCanvas(agent.seed, { look: agent.look, sub: agent.kind === 'sub', scale, parts: agent.parts });
-    entry = { url: c.toDataURL('image/png'), w: c.width, h: c.height };
-    cache.set(key, entry);
-  }
-  return entry;
-}
-
 export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg';
-
-/** Escala inteira do módulo de arte para cada tamanho (pixels sempre nítidos). */
-const SCALE: Record<AvatarSize, number> = { xs: 1, sm: 2, md: 2, lg: 4 };
 
 /** Moldura do avatar (caixa com fundo) + imagem em tamanho natural, alinhada pelos ombros. */
 export function createAvatar(agent: AvatarSource, size: AvatarSize): HTMLElement {
@@ -36,23 +18,35 @@ export function createAvatarPlaceholder(size: AvatarSize): HTMLElement {
   return h('span', { class: `ui-avatar ui-avatar--${size}`, attrs: { 'aria-hidden': 'true' } });
 }
 
-/** Atualiza o avatar só se a aparência (semente, look, peças) mudou. */
-export function updateAvatar(box: HTMLElement, agent: AvatarSource, size: AvatarSize): void {
-  const sig = `${agent.seed}|${agent.look}|${agent.kind}|${partsKey(agent.parts)}`;
+/**
+ * Frinus Office: o agente não tem rosto. A sessão principal (o orquestrador Frinus) é um orbe com a logo;
+ * o subagente (especialista do time) é um neurônio — núcleo com dendritos. Cor vem de --acc (conta).
+ */
+// Neurônio: núcleo + dendritos curvos (recebem) de um lado e um axônio de luz (projeta) do outro —
+// a mesma leitura da cena Cérebro, só que no tamanho do avatar.
+const NEURON_SVG =
+  '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round">' +
+  '<g stroke-width="1.5" opacity=".7">' +
+  '<path d="M13 13 Q6 9 4 4 M13 13 Q7 12 3 13 M13 14 Q8 18 5 24 M16 12 Q15 6 17 2"/>' +
+  '</g>' +
+  '<circle cx="4" cy="4" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="13" r="1.4" fill="currentColor" stroke="none"/>' +
+  '<circle cx="5" cy="24" r="1.4" fill="currentColor" stroke="none"/><circle cx="17" cy="2" r="1.3" fill="currentColor" stroke="none"/>' +
+  '<path d="M19 17 Q25 22 28 28" stroke-width="1.8" opacity=".95"/>' +
+  '<circle cx="28" cy="28" r="1.8" fill="currentColor" stroke="none"/>' +
+  '<circle cx="15" cy="15" r="5.4" fill="currentColor" stroke="none"/>' +
+  '<circle cx="15" cy="15" r="2" fill="#14121f" stroke="none" opacity=".55"/></svg>';
+
+/** Atualiza o avatar só se o tipo (sessão principal × subagente) mudou. */
+export function updateAvatar(box: HTMLElement, agent: AvatarSource, _size: AvatarSize): void {
+  const sig = agent.kind;
   if (box.dataset.sig === sig) return;
   box.dataset.sig = sig;
-  let img = box.querySelector('img');
-  if (!img) {
-    img = h('img', { attrs: { alt: '', draggable: 'false', decoding: 'async' } });
-    box.append(img);
+  box.classList.add('ui-avatar--frinus');
+  box.classList.toggle('ui-avatar--sub', agent.kind === 'sub');
+  if (agent.kind === 'sub') {
+    box.innerHTML = NEURON_SVG;
+    return;
   }
-  try {
-    const data = avatarData(agent, SCALE[size]);
-    img.width = data.w;
-    img.height = data.h;
-    img.src = data.url;
-  } catch (err) {
-    // A arte ainda pode estar em construção; a moldura vazia continua legível.
-    console.warn('[ui] falha ao gerar avatar', err);
-  }
+  box.innerHTML = '';
+  box.append(h('img', { attrs: { src: '/assets/brand/frinus-logo-white.svg', alt: '', draggable: 'false', decoding: 'async' } }));
 }

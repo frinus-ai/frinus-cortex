@@ -44,7 +44,7 @@ import { canRenameRoom } from './roomrename';
 import { accountChipLabel, accountProvider, CODEX_LIVE_HINT, codexApprovalLabel, providerOf } from './provider';
 import { ptyControllable } from './ptyapi';
 import { createAgentRow, updateAgentRow } from './rows';
-import { SocialSection } from './social';
+import { ContributionSection } from './contribution';
 import { TERMINAL_UNAVAILABLE_HINT, type TerminalControl } from './terminal';
 import { Movable } from './movable';
 import type { PtyControl } from './pty';
@@ -258,7 +258,7 @@ class AgentView {
   /** Quantos itens da linha do tempo aparecem agora. */
   private timelineShown = TIMELINE_STEP;
   private stats: KvList<StatKey>;
-  private social: SocialSection;
+  private contribution: ContributionSection;
   readonly character: CharacterEditor;
   private sessionValue: HTMLElement;
   private linesPlus: HTMLElement;
@@ -284,7 +284,8 @@ class AgentView {
     const heroText = h(
       'div',
       { class: 'ui-hero__text' },
-      h('div', { class: 'ui-hero__line' }, this.name, this.character.button, this.role),
+      // Frinus Office: sem o lápis de editar personagem (nomes são do Frinus/especialista, não de pessoa).
+      h('div', { class: 'ui-hero__line' }, this.name, this.role),
       h('div', { class: 'ui-hero__acc' }, this.accChip, this.accName, this.accProv, this.accEmail),
       h('div', { class: 'ui-hero__where' }, h('span', { class: 'ui-muted', text: tr('Sala') }), this.roomBtn),
     );
@@ -359,7 +360,7 @@ class AgentView {
     this.msgSec = section(tr('Mandar mensagem'), this.composer.el);
     // No celular a caixa fica presa no rodapé da gaveta enquanto a conversa rola (styles.css, .ui-sec--msg).
     this.msgSec.el.classList.add('ui-sec--msg');
-    this.social = new SocialSection(ctx);
+    this.contribution = new ContributionSection(ctx);
     this.perm = new PermissionCard(ctx);
 
     this.tasksBar = createProgress(tr('Progresso das tarefas'));
@@ -407,7 +408,6 @@ class AgentView {
       'div',
       { class: 'ui-drawer__view ui-agent-view' },
       h('div', { class: 'ui-hero' }, this.avatar, heroText),
-      this.character.el,
       this.title,
       this.gone,
       statusRow,
@@ -419,7 +419,7 @@ class AgentView {
       this.shellsSec.el,
       nowSec.el,
       this.msgSec.el,
-      this.social.el,
+      this.contribution.el,
       this.tasksSec.el,
       this.teamSec.el,
       this.timelineSec.el,
@@ -535,7 +535,6 @@ class AgentView {
     updateAvatar(this.avatar, a, 'lg');
     setStyleVar(this.avatar, '--acc', account?.color ?? '#8b98b3');
     setText(this.name, a.name);
-    this.character.render(a, !!live);
     setText(this.role, roleLabel(a));
     setVariant(this.role, 'ui-role--', a.kind);
     setText(this.title, a.title ?? '');
@@ -618,9 +617,8 @@ class AgentView {
     // Mandar mensagem: só para principais presentes (com o recurso ligado e a página local; sem o plugin, a dica).
     setHidden(this.msgSec.el, this.composer.render(live, this.id) === 'off');
 
-    // Vida social (personalidade, carteira, rodas): só de quem está no escritório.
-    if (live) this.social.render(a.id, now);
-    else setHidden(this.social.el, true);
+    // Contribuição: o que o agente somou à memória e ao trabalho da sessão (sem moedas, sem ranking).
+    this.contribution.render(a);
 
     // Tarefas.
     const tp = taskProgress(a.tasks);
