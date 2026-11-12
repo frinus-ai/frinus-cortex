@@ -11522,3 +11522,85 @@ html.is-replay #world {
   .ui-mem-stats { grid-template-columns: repeat(2, 1fr); }
   .ui-mem-top { flex-direction: column; align-items: stretch; }
 }
+
+/* ------------------------------------------------------------------ Nova conversa com o Frinus (topbar + janela) */
+.ui-btn-newchat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--st-working) 18%, transparent);
+  border-color: color-mix(in srgb, var(--st-working) 55%, transparent);
+  color: color-mix(in srgb, var(--st-working) 80%, #fff);
+  white-space: nowrap;
+}
+.ui-btn-newchat:hover {
+  background: color-mix(in srgb, var(--st-working) 28%, transparent);
+}
+.ui-btn-newchat__icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+}
+.ui-btn-newchat__icon svg {
+  width: 16px;
+  height: 16px;
+}
+/* Em telas estreitas, fica só o ícone. */
+@media (max-width: 720px) {
+  .ui-btn-newchat__text {
+    display: none;
+  }
+}
+
+.ui-newchat {
+  width: min(460px, calc(100vw - 32px));
+}
+.ui-newchat__body {
+  display: block;
+  padding-top: 14px;
+}
+.ui-newchat__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.ui-newchat__label {
+  font-size: 12px;
+  color: var(--ui-faint);
+}
+.ui-newchat__field .ui-mem-input,
+.ui-newchat__field .ui-mem-account {
+  max-width: none;
+  width: 100%;
+}
+.ui-newchat__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.ui-newchat__start {
+  min-width: 160px;
+}
+.ui-newchat__add {
+  margin-top: 10px;
+  border-top: 1px solid var(--ui-line);
+  padding-top: 12px;
+}
+.ui-newchat__add-toggle {
+  appearance: none;
+  background: none;
+  border: none;
+  color: color-mix(in srgb, var(--st-working) 80%, #fff);
+  font: 600 13px/1 var(--font-ui);
+  cursor: pointer;
+  padding: 2px 0;
+}
+.ui-newchat__add-toggle:hover {
+  text-decoration: underline;
+}
+.ui-newchat__add-body {
+  margin-top: 10px;
+}

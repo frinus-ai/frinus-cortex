@@ -202,24 +202,26 @@ describe('perfil Frinus (FRINUS_ONLY)', () => {
     expect(discoverClaudeDirs(env, home)).toEqual([join(home, '.claude-rdx')]);
   });
 
-  it('nome amigável: organização do perfil e, sem ela, o nome da pasta — sem vazar segredo', () => {
+  it('nome da conta: sempre o alias da pasta (sem o prefixo .claude-), ignorando a organização — sem vazar segredo', () => {
     const env = { FRINUS_ONLY: '1' };
     const accs = detectAccounts(discoverClaudeDirs(env, home), { home, env });
     const byId = Object.fromEntries(accs.map((a) => [a.id, a.name]));
-    expect(byId['.claude-rdx']).toBe('RDX Security'); // organização do oauthAccount
-    expect(byId['.claude-sc']).toBe('Sc'); // sem org -> nome da pasta
-    expect(byId['.claude-muza']).toBe('Muza');
+    expect(byId['.claude-rdx']).toBe('rdx'); // alias da pasta, NÃO a organização "RDX Security"
+    expect(byId['.claude-sc']).toBe('sc');
+    expect(byId['.claude-muza']).toBe('muza');
+    // A organização segue disponível no campo próprio (chip/e-mail), só não vira mais o nome.
+    expect(accs.find((a) => a.id === '.claude-rdx')?.organization).toBe('RDX Security');
     expect(JSON.stringify(accs)).not.toContain('sk-nao-vazar');
   });
 
-  it('organização repetida entre contas cai no nome da pasta (sem nomes iguais)', () => {
+  it('o alias da pasta vale mesmo quando as contas têm a mesma organização', () => {
     mkdirSync(join(home, '.claude-a', 'projects'), { recursive: true });
     mkdirSync(join(home, '.claude-b', 'projects'), { recursive: true });
     claudeJson('.claude-a', { oauthAccount: { emailAddress: 'x@e.com', organizationName: 'Mesma Org' }, mcpServers: { frinus: {} } });
     claudeJson('.claude-b', { oauthAccount: { emailAddress: 'y@e.com', organizationName: 'Mesma Org' }, mcpServers: { frinus: {} } });
     const env = { FRINUS_ONLY: '1' };
     const accs = detectAccounts([join(home, '.claude-a'), join(home, '.claude-b')], { home, env });
-    expect(accs.map((a) => a.name)).toEqual(['A', 'B']);
+    expect(accs.map((a) => a.name)).toEqual(['a', 'b']);
   });
 
   it('sem FRINUS_ONLY, o nome segue "Conta X" (comportamento do Habblaud)', () => {

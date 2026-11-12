@@ -352,6 +352,8 @@ export interface OfficeSnapshot {
      * Uma página aberta com outro build está desatualizada e deve se recarregar. Ausente no modo dev.
      */
     build?: string;
+    /** $HOME do servidor: a interface sugere ~/Frinus como pasta padrão de uma nova conversa. Ausente nos testes. */
+    home?: string;
     /**
      * Terminal (GET /api/agents/:id/terminal) disponível: só quando o Habblaud não fica
      * exposto além do próprio computador (bind local). Ausente/false = recurso desligado.

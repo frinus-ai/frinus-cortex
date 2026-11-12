@@ -59,6 +59,8 @@ export interface OfficeDeps {
   version: string;
   /** Build do cliente servido (ver OfficeSnapshot.meta.build); ausente no modo dev e nos testes. */
   build?: () => string | undefined;
+  /** $HOME do servidor (ver OfficeSnapshot.meta.home): a interface sugere ~/Frinus como pasta padrão. */
+  home?: string;
   startedAt: number;
   /** Contas reais, com o nº de sessões abertas de cada uma. */
   accounts: (sessions: ReadonlyMap<string, number>) => AccountInfo[];
@@ -1015,6 +1017,7 @@ export class Office {
         startedAt: this.deps.startedAt,
         version: this.deps.version,
         build: this.deps.build?.(),
+        ...(this.deps.home ? { home: this.deps.home } : {}),
         terminal: this.deps.terminal === true,
         messages: this.deps.messages !== undefined,
         ...(ptys ? { pty: ptys.status } : {}),

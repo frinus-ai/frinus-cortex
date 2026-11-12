@@ -2,9 +2,10 @@
 // mantém o modelo do escritório e transmite via SSE. Sem dependências de runtime.
 //   npm run dev    -> tsx server/index.ts --dev (Vite em middleware mode, HMR no mesmo servidor)
 //   npm start      -> node dist/server/index.js (serve dist/client)
+import { execFile } from 'node:child_process';
 import http from 'node:http';
 import { join } from 'node:path';
-import { codexDirsRefused, isDefaultDir } from './accounts/detect';
+import { codexDirsRefused, discoverClaudeDirs, isDefaultDir } from './accounts/detect';
 import { AccountsService } from './accounts/service';
 import { isTruthy, loadConfig, messagesOffReason, terminalOffReason, worldSocketUrl } from './config';
 import { createApiHandler, sendJson } from './http/app';
@@ -109,6 +110,7 @@ const world = config.world.enabled
   : undefined;
 const accounts = new AccountsService({
   dirs: config.claudeDirs,
+  discoverDirs: () => discoverClaudeDirs(process.env, config.home),
   home: config.home,
   env: process.env,
   usageDir: config.usageDir,
@@ -120,6 +122,7 @@ const office = new Office({
   version: config.version,
   // No modo dev o Vite serve o cliente direto do código-fonte: não há build para comparar.
   build: config.dev ? undefined : createBuildReader(config.rootDir),
+  home: config.home,
   startedAt,
   accounts: (sessions) => accounts.list(sessions),
   sources: () => late.agents?.sources() ?? [],
@@ -378,8 +381,35 @@ const api = createApiHandler({
   remote: config.remote ? { is: isRemoteRequest, allows: (f) => config.remote!.allow.has(f) } : undefined,
   world: world ? createWorldRoutes(world, worldViewer, worldSocial) : undefined,
   // Busca de memória do Frinus (server/http/frinus.ts): a chave sai do frinus-mcp no .claude.json de cada conta.
-  frinus: createFrinusRoutes({ accounts: () => accounts.entries(), home: config.home }),
+  frinus: createFrinusRoutes({
+    accounts: () => accounts.entries(),
+    home: config.home,
+    rescan: () => accounts.rediscover(),
+    installMod: (dir) => installModInAccount(dir),
+  }),
 });
+
+/**
+ * Instala o mod/plugins (permissões, mensagens, uso) só na conta recém-criada: `npm run mod:install -- --conta <dir>`
+ * no diretório do fork. Melhor esforço, em segundo plano — nunca bloqueia nem falha a criação da conta; a saída é
+ * descartada (não há segredo no comando). Hoisted: pode ser referenciada acima.
+ */
+function installModInAccount(dir: string): void {
+  try {
+    const child = execFile(
+      'npm',
+      ['run', 'mod:install', '--', '--conta', dir],
+      { cwd: config.rootDir, timeout: 120_000, windowsHide: true },
+      () => {
+        /* saída e erros ignorados de propósito */
+      },
+    );
+    child.stdin?.end();
+    child.unref();
+  } catch {
+    // npm ausente do PATH ou falha ao iniciar: a conta já foi criada; o mod é aplicado pelo instalador/depois
+  }
+}
 
 const server = http.createServer();
 let closeVite: (() => Promise<void>) | undefined;

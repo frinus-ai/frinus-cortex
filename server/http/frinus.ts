@@ -14,6 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tr } from '../../shared/i18n';
 import { HttpError, readJson, sendJson } from './app';
+import { ProvisionError, provisionFrinusAccount } from '../accounts/provision';
 
 /** URL da Memory Engine em produção (sobrescreva com FRINUS_OFFICE_MEMORY_URL para apontar outra instância). */
 const MEMORY_URL = (process.env.FRINUS_OFFICE_MEMORY_URL || 'https://frinus-memory.rdxsec.com.br').replace(/\/+$/, '');
@@ -31,8 +32,12 @@ export interface FrinusAccount {
 export interface FrinusRouteDeps {
   /** Contas conhecidas agora (AccountsService.entries()); só as do Claude Code têm .claude.json. */
   accounts: () => readonly FrinusAccount[];
-  /** $HOME, para achar o .claude.json da conta padrão. */
+  /** $HOME, para achar o .claude.json da conta padrão (e criar ~/.claude-<alias> em "Adicionar conta"). */
   home: string;
+  /** Re-descobre as contas depois de criar uma nova, para ela aparecer na hora (AccountsService.rediscover). */
+  rescan?: () => void;
+  /** Instala o mod/plugins (permissões, mensagens, uso) na conta recém-criada; melhor esforço, nunca bloqueia. */
+  installMod?: (dir: string) => void;
 }
 
 interface AccountSummary {
@@ -188,6 +193,31 @@ async function handleHealth(req: IncomingMessage, res: ServerResponse, url: URL,
 }
 
 /**
+ * "Adicionar conta Frinus": cria ~/.claude-<alias>, liga o MCP do Frinus (chave só no arquivo), instala o mod e
+ * faz a conta aparecer na hora. A chave chega no corpo, nunca é logada nem devolvida.
+ */
+async function handleCreateAccount(req: IncomingMessage, res: ServerResponse, deps: FrinusRouteDeps): Promise<void> {
+  const body = (await readJson(req)) as { alias?: unknown; apiKey?: unknown } | null;
+  let result;
+  try {
+    result = await provisionFrinusAccount({ alias: body?.alias, apiKey: body?.apiKey, home: deps.home });
+  } catch (err) {
+    if (err instanceof ProvisionError) throw new HttpError(err.status, err.message);
+    // Nunca propague o objeto de erro cru (poderia conter o corpo/chave); mensagem genérica.
+    throw new HttpError(500, tr('não foi possível criar a conta'));
+  }
+  // Mod/plugins + uso (melhor esforço, em segundo plano: nunca segura a resposta nem falha a criação).
+  try {
+    deps.installMod?.(result.dir);
+  } catch {
+    // ignorado: a conta já existe; o mod também é aplicado pelo instalador/na próxima vez
+  }
+  deps.rescan?.();
+  // Resposta SEM a chave: só o que a interface precisa para mostrar a conta nova.
+  sendJson(res, 201, { ok: true, id: result.id, name: result.alias, organization: result.organization ?? null, verified: result.verified ?? null });
+}
+
+/**
  * Cria o manipulador das rotas /api/frinus (registrado no app.ts). Devolve `false` para caminhos que não
  * são dele (o roteador segue tentando); devolve `true` quando tratou a requisição.
  */
@@ -204,8 +234,10 @@ export function createFrinusRoutes(deps: FrinusRouteDeps): (req: IncomingMessage
     const isRead = method === 'GET' || method === 'HEAD';
 
     if (path === '/api/frinus/accounts') {
-      if (!isRead) {
-        res.setHeader('Allow', 'GET');
+      if (method === 'POST') {
+        handleCreateAccount(req, res, deps).catch((err) => fail(res, err));
+      } else if (!isRead) {
+        res.setHeader('Allow', 'GET, POST');
         sendJson(res, 405, { error: tr('método não permitido') });
       } else {
         req.resume();

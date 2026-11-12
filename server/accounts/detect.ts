@@ -328,19 +328,15 @@ export function hasFrinusMcp(dir: string, home: string): boolean {
 }
 
 /**
- * Nome amigável a partir do id/pasta da conta quando não há organização: ".claude-rdx" -> "Rdx",
- * ".claude-supermaxi" -> "Supermaxi". A pasta padrão (".claude", sem sufixo) não gera nada (cai no "Conta X").
+ * Alias da conta a partir do id/pasta: o nome da pasta SEM o prefixo ".claude-", exatamente como foi
+ * dado na criação da conta. ".claude-rdx" -> "rdx", ".claude-super-maxi" -> "super-maxi". A pasta padrão
+ * (".claude", sem sufixo) não gera nada (cai no "Conta X"). Sem capitalizar nem reformatar: é o alias cru.
  */
-export function friendlyNameFromId(id: string): string | undefined {
+export function aliasFromId(id: string): string | undefined {
   const base = id.replace(/~\d+$/, ''); // tira o desambiguador (~2, ~3...)
   const m = /^\.?claude[-_.]?(.*)$/i.exec(base);
-  const rest = (m ? m[1] : base).replace(/^[-_.]+/, '');
-  if (!rest) return undefined;
-  return rest
-    .split(/[-_.\s]+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
+  const rest = (m ? m[1] : base).replace(/^[-_.]+/, '').trim();
+  return rest || undefined;
 }
 
 interface GlobalConfigInfo {
@@ -452,16 +448,12 @@ export function detectAccounts(dirs: string[], opts: { home?: string; env?: Node
     return { ...p, email, organization };
   });
 
-  // No perfil Frinus a organização vira nome, mas só quando é única: duas contas na mesma org do Claude Code
-  // (ex.: dois config dirs logados na mesma assinatura) ficariam com o mesmo nome, então caem na pasta.
-  const orgCount = new Map<string, number>();
-  if (frinus) for (const r of resolved) if (r.organization) orgCount.set(r.organization, (orgCount.get(r.organization) ?? 0) + 1);
-
   return resolved.map((p, i) => {
     const short = p.short ?? fallbackShort();
-    const uniqueOrg = p.organization && orgCount.get(p.organization) === 1 ? p.organization : undefined;
-    // Ordem no perfil Frinus: override > organização única > nome da pasta > "Conta X".
-    const name = str(p.ov?.name) ?? (frinus ? uniqueOrg ?? friendlyNameFromId(p.id) : undefined) ?? tr('Conta {0}', [short]);
+    // Perfil Frinus: o nome é SEMPRE o alias da pasta (o que o usuário deu ao criar a conta, ex.: ".claude-rdx"
+    // -> "rdx"), nunca a organização do oauthAccount. Ordem: override explícito > alias da pasta > "Conta X".
+    // A organização continua guardada em acc.organization (chip/e-mail), só não vira mais o nome.
+    const name = str(p.ov?.name) ?? (frinus ? aliasFromId(p.id) : undefined) ?? tr('Conta {0}', [short]);
     const acc: DetectedAccount = {
       id: p.id,
       configDir: str(p.ov?.configDir) ?? p.dir,

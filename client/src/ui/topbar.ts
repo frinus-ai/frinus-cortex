@@ -1,5 +1,6 @@
 // Barra superior: marca, conexão, contadores, uso por conta e botões de controle.
 import { access } from '../net/access';
+import { NewChatPanel } from './newchat';
 import { SpawnPanel } from './spawn';
 import type { UiComponent, UiContext } from './context';
 import { h, iconButton, setAttr, setHidden, setText, setTitle, setVariant } from './dom';
@@ -53,6 +54,9 @@ export class TopBar implements UiComponent {
   readonly worldBtn: HTMLButtonElement;
   private readonly spawnBtn: HTMLButtonElement;
   private readonly spawnPanel: SpawnPanel;
+  /** Botão em destaque "Nova conversa com o Frinus" + a janela que ele abre (conta + pasta, ou adicionar conta). */
+  private readonly newChatBtn: HTMLButtonElement;
+  private readonly newChatPanel: NewChatPanel;
   /** Grupo dos botões de painéis (feed, Habblaud World, configurações, ajuda); o histórico entra aqui (ui/index.ts). */
   readonly panelGroup: HTMLElement;
 
@@ -120,6 +124,15 @@ export class TopBar implements UiComponent {
     this.spawnBtn = iconButton(ICONS.newAgent, tr('Novo agente: começa uma sessão do Claude Code no computador'), () => this.spawnPanel.toggle(this.spawnBtn), 'ui-btn-spawn');
     this.spawnBtn.setAttribute('aria-haspopup', 'dialog');
     this.spawnBtn.hidden = true;
+    // "Nova conversa com o Frinus": botão em destaque (texto + ícone) que abre a janela de conta/pasta.
+    this.newChatPanel = new NewChatPanel(ctx);
+    ctx.root.append(this.newChatPanel.el);
+    this.newChatBtn = h('button', { class: 'ui-btn ui-btn--accent ui-btn-newchat', type: 'button', on: { click: () => this.newChatPanel.toggle(this.newChatBtn) } });
+    this.newChatBtn.setAttribute('aria-haspopup', 'dialog');
+    const ncIcon = h('span', { class: 'ui-btn-newchat__icon', attrs: { 'aria-hidden': 'true' } });
+    ncIcon.innerHTML = ICONS.newAgent;
+    this.newChatBtn.append(ncIcon, h('span', { class: 'ui-btn-newchat__text', text: tr('Nova conversa com o Frinus') }));
+
     this.version = new VersionChip(ctx, this.settingsBtn);
     this.status = h('div', { class: 'ui-topbar__status' }, this.pill, this.version.el, this.demoBadge);
     const viewGroup = h(
@@ -158,7 +171,7 @@ export class TopBar implements UiComponent {
       ),
       counterWrap,
       this.usage.el,
-      h('div', { class: 'ui-topbar__right' }, viewGroup, panelGroup),
+      h('div', { class: 'ui-topbar__right' }, this.newChatBtn, viewGroup, panelGroup),
     );
   }
 
@@ -224,6 +237,9 @@ export class TopBar implements UiComponent {
 
     this.usage.render();
     this.version.render();
+    this.newChatPanel.render();
+    // Conversa com o Frinus: sempre visível (menos em simulação/timelapse); a própria janela diz se o terminal está off.
+    setHidden(this.newChatBtn, store.mock || store.replaying);
     setHidden(this.spawnBtn, !access().spawn || store.mock || store.replaying);
 
     this.sidebarBtn.setAttribute('aria-pressed', String(this.ctx.isPanelOpen('sidebar')));

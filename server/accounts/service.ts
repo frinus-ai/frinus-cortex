@@ -34,6 +34,8 @@ export interface ProviderAccountInput {
 
 export interface AccountsServiceOptions {
   dirs: string[];
+  /** Re-descobre os config dirs sob demanda (ex.: depois de criar uma conta nova pela interface). */
+  discoverDirs?: () => string[];
   home: string;
   env: NodeJS.ProcessEnv;
   onChange: () => void;
@@ -62,6 +64,22 @@ export class AccountsService {
   constructor(private readonly opts: AccountsServiceOptions) {
     this.now = opts.now ?? Date.now;
     this.statusline = opts.usageDir ? new StatuslineUsageReader(opts.usageDir) : null;
+    this.refresh();
+    this.refreshStatusline();
+  }
+
+  /**
+   * Re-descobre os config dirs (uma conta nova acabou de ser criada) e relê tudo, para ela aparecer na hora.
+   * Sem `discoverDirs` configurado, equivale a um refresh.
+   */
+  rediscover(): void {
+    if (this.opts.discoverDirs) {
+      try {
+        this.opts.dirs = this.opts.discoverDirs();
+      } catch {
+        // mantém a lista atual se a descoberta falhar
+      }
+    }
     this.refresh();
     this.refreshStatusline();
   }
