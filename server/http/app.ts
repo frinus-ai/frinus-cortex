@@ -94,6 +94,12 @@ export interface ApiDeps {
    * local com Host local: pela porta do celular, nem com login (403 `local_only`).
    */
   world?: (req: IncomingMessage, res: ServerResponse, url: URL) => void;
+  /**
+   * Rotas do Frinus Office (/api/frinus/*, server/http/frinus.ts): busca de memória, tarefas e saúde, via proxy
+   * para a Memory Engine com a chave da conta. Só pelo próprio computador (isLocalOnlyPath): a chave nunca é usada
+   * em nome de um acesso remoto. Devolve false para o que não é dela.
+   */
+  frinus?: (req: IncomingMessage, res: ServerResponse, url: URL) => boolean;
 }
 
 /** GET /api/agents/:id/terminal (ids nunca contêm '/'). */
@@ -125,7 +131,10 @@ function isLocalOnlyPath(path: string): boolean {
     path === '/api/mod/inbox' ||
     path === '/api/mod/inbox/ack' ||
     path.startsWith('/api/codex/') ||
-    path.startsWith('/api/host/')
+    path.startsWith('/api/host/') ||
+    // Busca de memória do Frinus: usa a chave da conta, então só vale pelo próprio computador (nunca pelo celular).
+    path === '/api/frinus' ||
+    path.startsWith('/api/frinus/')
   );
 }
 
@@ -711,6 +720,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       return true;
     }
     if (deps.timeline?.(req, res, url)) return true;
+    if (deps.frinus?.(req, res, url)) return true;
     sendJson(res, 404, { error: tr('rota desconhecida') });
     return true;
   };

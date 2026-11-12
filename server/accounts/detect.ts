@@ -65,6 +65,17 @@ function splitList(v: string | undefined): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Perfil "só Frinus" (FRINUS_ONLY): o escritório monitora SOMENTE as contas do Claude Code que têm o MCP do
+ * Frinus configurado no .claude.json, e dá nome amigável pela organização (ou pela pasta). Ligado no perfil do
+ * Frinus Office (frinus/office.env); ausente = comportamento normal do Habblaud (todas as contas). Local, para
+ * não depender de ../config (que importa este módulo).
+ */
+export function frinusOnly(env: NodeJS.ProcessEnv): boolean {
+  const v = env.FRINUS_ONLY?.trim();
+  return !!v && /^(1|true|yes|sim|on)$/i.test(v);
+}
+
 /** Expande `~`, `$HOME` e `${HOME}` e devolve o caminho absoluto sem barra final. */
 export function expandHome(p: string, home: string): string {
   const expanded = p
@@ -173,11 +184,13 @@ function scanClaudeDirs(env: NodeJS.ProcessEnv, home: string): { dirs: string[];
     return false;
   };
   const unique = (list: string[]) => [...new Set(list)];
+  // Perfil "só Frinus": fica só com as contas que têm o MCP do Frinus (FRINUS_ONLY); senão, lista inteira.
+  const keepFrinus = (list: string[]) => (frinusOnly(env) ? list.filter((d) => hasFrinusMcp(d, home)) : list);
 
   const override = splitList(env.HABBLAUD_CLAUDE_DIRS);
   if (override.length) {
     const dirs = unique(override.map((p) => expandHome(p, home)));
-    return { dirs: dirs.filter(notCodex), codex };
+    return { dirs: keepFrinus(dirs.filter(notCodex)), codex };
   }
 
   const found: string[] = [];
@@ -205,7 +218,7 @@ function scanClaudeDirs(env: NodeJS.ProcessEnv, home: string): { dirs: string[];
     const db = isDefaultDir(b, home) ? 0 : 1;
     return da - db || a.localeCompare(b);
   });
-  return { dirs, codex: unique(codex.map((p) => expandHome(p, home))) };
+  return { dirs: keepFrinus(dirs), codex: unique(codex.map((p) => expandHome(p, home))) };
 }
 
 const ALIAS_RE = /^\s*alias\s+([A-Za-z0-9_][A-Za-z0-9_.-]*)=(?:'([^']*)'|"((?:[^"\\]|\\.)*)")\s*(?:#.*)?$/;
@@ -271,6 +284,63 @@ export function shortcutsByDir(aliases: ClaudeAlias[], home: string, defaultDir:
     if (cur === undefined || a.name.length < cur.length) best.set(dir, a.name);
   }
   return new Map([...best].map(([dir, name]) => [dir, name.toUpperCase()]));
+}
+
+/**
+ * Lê e parseia o .claude.json de um config dir (os mesmos candidatos de readGlobalConfig: para a conta padrão,
+ * $HOME/.claude.json e depois <dir>/.claude.json). undefined se não existir ou for ilegível. Nunca loga nada.
+ */
+function readClaudeJson(dir: string, home: string): Record<string, unknown> | undefined {
+  const candidates = isDefaultDir(dir, home) ? [join(home, '.claude.json'), join(dir, '.claude.json')] : [join(dir, '.claude.json')];
+  for (const file of candidates) {
+    if (!existsSync(file)) continue;
+    try {
+      const j = JSON.parse(readFileSync(file, 'utf8')) as unknown;
+      if (j && typeof j === 'object' && !Array.isArray(j)) return j as Record<string, unknown>;
+    } catch {
+      // JSON inválido (sendo gravado?): tenta o próximo candidato
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Uma entrada de `mcpServers` é o MCP do Frinus? Reconhecido pelo nome do servidor (`frinus`, `frinus-mcp`...),
+ * pelo pacote invocado (`frinus-mcp` em command/args) ou pela env FRINUS_API_KEY. Olha SÓ nomes/estrutura:
+ * nunca lê o VALOR de uma env (as chaves do vault ficam ali e não podem vazar).
+ */
+export function isFrinusMcpServer(name: string, def: unknown): boolean {
+  if (/frinus/i.test(name)) return true;
+  if (!def || typeof def !== 'object') return false;
+  const d = def as Record<string, unknown>;
+  const argv = Array.isArray(d.args) ? d.args.filter((a): a is string => typeof a === 'string') : [];
+  const cmd = typeof d.command === 'string' ? d.command : '';
+  if (/frinus-mcp/i.test([cmd, ...argv].join(' '))) return true;
+  const env = d.env && typeof d.env === 'object' ? (d.env as Record<string, unknown>) : undefined;
+  return !!env && Object.keys(env).some((k) => /^FRINUS_API_KEY$/i.test(k));
+}
+
+/** A conta (config dir) tem o MCP do Frinus configurado no .claude.json (mcpServers)? */
+export function hasFrinusMcp(dir: string, home: string): boolean {
+  const servers = readClaudeJson(dir, home)?.mcpServers;
+  if (!servers || typeof servers !== 'object') return false;
+  return Object.entries(servers as Record<string, unknown>).some(([name, def]) => isFrinusMcpServer(name, def));
+}
+
+/**
+ * Nome amigável a partir do id/pasta da conta quando não há organização: ".claude-rdx" -> "Rdx",
+ * ".claude-supermaxi" -> "Supermaxi". A pasta padrão (".claude", sem sufixo) não gera nada (cai no "Conta X").
+ */
+export function friendlyNameFromId(id: string): string | undefined {
+  const base = id.replace(/~\d+$/, ''); // tira o desambiguador (~2, ~3...)
+  const m = /^\.?claude[-_.]?(.*)$/i.exec(base);
+  const rest = (m ? m[1] : base).replace(/^[-_.]+/, '');
+  if (!rest) return undefined;
+  return rest
+    .split(/[-_.\s]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 }
 
 interface GlobalConfigInfo {
@@ -352,6 +422,8 @@ export function detectAccounts(dirs: string[], opts: { home?: string; env?: Node
   const overrides = claudeOverrides(env.HABBLAUD_ACCOUNTS);
   const shortcuts = shortcutsByDir(readShellAliases(home), home);
   const ids = accountIds(dirs);
+  // Perfil Frinus: sem override de nome, usa a organização e, sem ela, o nome da pasta ("RDX", "SuperMaxi").
+  const frinus = frinusOnly(env);
 
   const partial = dirs.map((dir, i) => {
     const id = ids[i];
@@ -374,21 +446,33 @@ export function detectAccounts(dirs: string[], opts: { home?: string; env?: Node
     return '?';
   };
 
-  return partial.map((p, i) => {
+  const resolved = partial.map((p) => {
+    const email = str(p.ov?.email) ?? p.cfg.email;
+    const organization = meaningfulOrganization(str(p.ov?.organization) ?? p.cfg.organization, email);
+    return { ...p, email, organization };
+  });
+
+  // No perfil Frinus a organização vira nome, mas só quando é única: duas contas na mesma org do Claude Code
+  // (ex.: dois config dirs logados na mesma assinatura) ficariam com o mesmo nome, então caem na pasta.
+  const orgCount = new Map<string, number>();
+  if (frinus) for (const r of resolved) if (r.organization) orgCount.set(r.organization, (orgCount.get(r.organization) ?? 0) + 1);
+
+  return resolved.map((p, i) => {
     const short = p.short ?? fallbackShort();
+    const uniqueOrg = p.organization && orgCount.get(p.organization) === 1 ? p.organization : undefined;
+    // Ordem no perfil Frinus: override > organização única > nome da pasta > "Conta X".
+    const name = str(p.ov?.name) ?? (frinus ? uniqueOrg ?? friendlyNameFromId(p.id) : undefined) ?? tr('Conta {0}', [short]);
     const acc: DetectedAccount = {
       id: p.id,
       configDir: str(p.ov?.configDir) ?? p.dir,
       short,
-      name: str(p.ov?.name) ?? tr('Conta {0}', [short]),
+      name,
       color: str(p.ov?.color) ?? ACCOUNT_COLORS[i % ACCOUNT_COLORS.length],
     };
-    const email = str(p.ov?.email) ?? p.cfg.email;
-    const organization = meaningfulOrganization(str(p.ov?.organization) ?? p.cfg.organization, email);
     const plan = str(p.ov?.plan);
     const cachedUsage = p.ov?.cachedUsage ?? p.cfg.cachedUsage;
-    if (email) acc.email = email;
-    if (organization) acc.organization = organization;
+    if (p.email) acc.email = p.email;
+    if (p.organization) acc.organization = p.organization;
     if (plan) acc.plan = plan;
     if (cachedUsage !== undefined) acc.cachedUsage = cachedUsage;
     return acc;

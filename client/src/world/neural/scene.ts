@@ -326,7 +326,8 @@ export class NeuralScene {
     const z = camera.zoom * camera.dpr;
     const cx = W / 2;
     const cy = H * 0.46;
-    const breathe = still ? 0.5 : 0.5 + 0.5 * Math.sin(now / 5200);
+    // Respiração do miolo bem contida: o fundo fica quase parado (o destaque é dos agentes).
+    const breathe = still ? 0.5 : 0.5 + 0.14 * Math.sin(now / 9000);
 
     // base opaca + luz volumétrica no miolo (sobe com respiração e com o trabalho)
     ctx.fillStyle = dark ? CORTEX : LAVENDER;
@@ -349,12 +350,12 @@ export class NeuralScene {
     if (!this.far) this.buildFar();
     if (this.far) {
       const cover = Math.max(W, H) * 2.4;
-      const par = 0.16;
-      const drift = still ? 0 : Math.sin(now / 90000) * 40;
-      const dx = cx - cover / 2 - camX * z * par + drift;
+      // Parallax quase nulo e sem deriva: o campo distante fica praticamente imóvel e mais esmaecido.
+      const par = 0.03;
+      const dx = cx - cover / 2 - camX * z * par;
       const dy = cy - cover / 2 - camY * z * par;
       ctx.save();
-      ctx.globalAlpha = dark ? 0.5 : 0.32;
+      ctx.globalAlpha = dark ? 0.24 : 0.16;
       ctx.drawImage(this.far, dx, dy, cover, cover * (this.far.height / this.far.width));
       ctx.restore();
     }
@@ -375,7 +376,8 @@ export class NeuralScene {
 
   private drawGyri(ctx: CanvasRenderingContext2D, W: number, H: number, camX: number, camY: number, z: number, now: number, dark: boolean, still: boolean): void {
     ctx.save();
-    const par = 0.4;
+    // Parallax quase nulo: os sulcos são estrutura, ficam praticamente parados.
+    const par = 0.06;
     ctx.translate(-camX * z * par, -camY * z * par);
     ctx.lineCap = 'round';
     const col = dark ? LAVENDER : PURPLE_DK;
@@ -384,7 +386,8 @@ export class NeuralScene {
       const y = (r / (rows - 1)) * (H * 1.4) - H * 0.2;
       const amp = 26 + (r % 3) * 12;
       const phase = r * 1.3;
-      const wob = still ? 0 : Math.sin(now / 6000 + r) * 8;
+      // Ondulação mínima e lenta (sem cintilação): o tecido mal se move.
+      const wob = still ? 0 : Math.sin(now / 14000 + r) * 2;
       ctx.strokeStyle = rgba(col, dark ? 0.05 : 0.07);
       ctx.lineWidth = 10 + (r % 2) * 6;
       ctx.beginPath();
@@ -403,9 +406,11 @@ export class NeuralScene {
 
   private drawAmbient(ctx: CanvasRenderingContext2D, W: number, H: number, camX: number, camY: number, z: number, now: number, still: boolean): void {
     if (!this.fibers.length) this.buildFibers();
-    const active = still ? 0 : Math.min(this.fibers.length, 2 + Math.round(this.work * 9));
+    // Pulsos ambiente RAROS: nenhum em repouso; só aparecem como reflexo de trabalho real.
+    const active = still ? 0 : Math.min(this.fibers.length, Math.round(this.work * 4));
     ctx.save();
-    const par = 0.5;
+    // Parallax quase nulo: as fibras distantes ficam praticamente paradas.
+    const par = 0.08;
     ctx.translate(-camX * z * par, -camY * z * par);
     for (let i = 0; i < this.fibers.length; i++) {
       const f = this.fibers[i];
@@ -517,7 +522,8 @@ export class NeuralScene {
   /** Núcleo de memória: um brilho âmbar discreto no centro, integrado ao tecido (recebe os pulsos). */
   private drawMemoryCore(ctx: CanvasRenderingContext2D, now: number, still: boolean): void {
     const { x, y } = this.center;
-    const b = still ? 0.6 : 0.5 + 0.5 * Math.sin(now / 2600);
+    // Brilho de repouso bem calmo: pulsa de leve e devagar (recebe os pulsos âmbar do trabalho real).
+    const b = still ? 0.6 : 0.5 + 0.18 * Math.sin(now / 6000);
     const R = 76;
     const g = ctx.createRadialGradient(x, y, 0, x, y, R);
     g.addColorStop(0, rgba(AMBER, 0.2 + 0.1 * b));

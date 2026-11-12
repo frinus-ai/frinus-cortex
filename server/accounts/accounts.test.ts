@@ -3,7 +3,7 @@ import { basename, join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { setQuiet } from '../log';
 import { tempDir } from '../test/fixtures';
-import { accountIds, codexDirsRefused, discoverClaudeDirs, detectAccounts, isClaudeDir, isCodexHome, parseClaudeAliases, shortcutsByDir } from './detect';
+import { accountIds, codexDirsRefused, discoverClaudeDirs, detectAccounts, hasFrinusMcp, isClaudeDir, isCodexHome, parseClaudeAliases, shortcutsByDir } from './detect';
 import { AccountsService } from './service';
 import { rollover, STALE_AFTER_MS, usageFromCache, usageFromWindows, UsageStore } from './usage';
 
@@ -156,6 +156,75 @@ describe('detecção de contas', () => {
     const accs = detectAccounts([join(home, '.claude'), join(home, '.claude-conta2')], { home: '/nenhum', env });
     expect(accs[0]).toMatchObject({ id: '.claude', configDir: '/Users/x/.claude', short: 'C', name: 'Conta C', email: 'host@x.com', plan: 'Max', color: '#000000' });
     expect(accs[1]).toMatchObject({ id: '.claude-conta2', configDir: '/Users/x/.claude-conta2', short: 'D', name: 'Pessoal', cachedUsage: { fetchedAtMs: 5 } });
+  });
+});
+
+describe('perfil Frinus (FRINUS_ONLY)', () => {
+  let tmp: ReturnType<typeof tempDir>;
+  let home: string;
+  const claudeJson = (dir: string, body: unknown) => writeFileSync(join(home, dir, '.claude.json'), JSON.stringify(body));
+  beforeEach(() => {
+    tmp = tempDir();
+    home = tmp.dir;
+    // Padrão sem Frinus; -rdx pelo nome do servidor "frinus-mcp"; -sc pelo nome "frinus";
+    // -muza pelo pacote em args; -pack pela env FRINUS_API_KEY; -nada só com outro MCP.
+    for (const d of ['.claude', '.claude-rdx', '.claude-sc', '.claude-muza', '.claude-pack', '.claude-nada']) {
+      mkdirSync(join(home, d, 'projects'), { recursive: true });
+    }
+    writeFileSync(join(home, '.claude.json'), '{}');
+    claudeJson('.claude-rdx', { oauthAccount: { emailAddress: 'r@rdxsec.com.br', organizationName: 'RDX Security' }, mcpServers: { shadcn: {}, 'frinus-mcp': { command: 'npx', args: ['-y', 'frinus-mcp@latest'], env: { FRINUS_API_KEY: 'sk-nao-vazar' } } } });
+    claudeJson('.claude-sc', { mcpServers: { frinus: { command: 'npx', args: ['-y', 'frinus-mcp@latest'], env: { FRINUS_API_KEY: 'sk-nao-vazar' } } } });
+    claudeJson('.claude-muza', { mcpServers: { memoria: { command: 'npx', args: ['-y', 'frinus-mcp@latest'] } } });
+    claudeJson('.claude-pack', { mcpServers: { x: { command: 'node', args: ['server.js'], env: { FRINUS_API_KEY: 'sk-nao-vazar' } } } });
+    claudeJson('.claude-nada', { oauthAccount: { emailAddress: 'p@pessoal.com' }, mcpServers: { 'google-drive': { command: 'npx', args: ['@piotr-agier/google-drive-mcp'] } } });
+  });
+  afterEach(() => tmp.cleanup());
+
+  it('detecta o MCP do Frinus por nome, pacote ou env; ignora os demais', () => {
+    expect(hasFrinusMcp(join(home, '.claude-rdx'), home)).toBe(true);
+    expect(hasFrinusMcp(join(home, '.claude-sc'), home)).toBe(true);
+    expect(hasFrinusMcp(join(home, '.claude-muza'), home)).toBe(true);
+    expect(hasFrinusMcp(join(home, '.claude-pack'), home)).toBe(true);
+    expect(hasFrinusMcp(join(home, '.claude-nada'), home)).toBe(false);
+    expect(hasFrinusMcp(join(home, '.claude'), home)).toBe(false);
+  });
+
+  it('FRINUS_ONLY filtra a descoberta para só as contas com Frinus', () => {
+    expect(discoverClaudeDirs({}, home)).toContain(join(home, '.claude-nada'));
+    const dirs = discoverClaudeDirs({ FRINUS_ONLY: '1' }, home);
+    expect(dirs).toEqual([join(home, '.claude-muza'), join(home, '.claude-pack'), join(home, '.claude-rdx'), join(home, '.claude-sc')]);
+    expect(dirs).not.toContain(join(home, '.claude'));
+    expect(dirs).not.toContain(join(home, '.claude-nada'));
+  });
+
+  it('FRINUS_ONLY também filtra HABBLAUD_CLAUDE_DIRS', () => {
+    const env = { FRINUS_ONLY: 'sim', HABBLAUD_CLAUDE_DIRS: `${join(home, '.claude-rdx')},${join(home, '.claude-nada')}` };
+    expect(discoverClaudeDirs(env, home)).toEqual([join(home, '.claude-rdx')]);
+  });
+
+  it('nome amigável: organização do perfil e, sem ela, o nome da pasta — sem vazar segredo', () => {
+    const env = { FRINUS_ONLY: '1' };
+    const accs = detectAccounts(discoverClaudeDirs(env, home), { home, env });
+    const byId = Object.fromEntries(accs.map((a) => [a.id, a.name]));
+    expect(byId['.claude-rdx']).toBe('RDX Security'); // organização do oauthAccount
+    expect(byId['.claude-sc']).toBe('Sc'); // sem org -> nome da pasta
+    expect(byId['.claude-muza']).toBe('Muza');
+    expect(JSON.stringify(accs)).not.toContain('sk-nao-vazar');
+  });
+
+  it('organização repetida entre contas cai no nome da pasta (sem nomes iguais)', () => {
+    mkdirSync(join(home, '.claude-a', 'projects'), { recursive: true });
+    mkdirSync(join(home, '.claude-b', 'projects'), { recursive: true });
+    claudeJson('.claude-a', { oauthAccount: { emailAddress: 'x@e.com', organizationName: 'Mesma Org' }, mcpServers: { frinus: {} } });
+    claudeJson('.claude-b', { oauthAccount: { emailAddress: 'y@e.com', organizationName: 'Mesma Org' }, mcpServers: { frinus: {} } });
+    const env = { FRINUS_ONLY: '1' };
+    const accs = detectAccounts([join(home, '.claude-a'), join(home, '.claude-b')], { home, env });
+    expect(accs.map((a) => a.name)).toEqual(['A', 'B']);
+  });
+
+  it('sem FRINUS_ONLY, o nome segue "Conta X" (comportamento do Habblaud)', () => {
+    const accs = detectAccounts([join(home, '.claude-rdx')], { home, env: {} });
+    expect(accs[0].name).toMatch(/^Conta /);
   });
 });
 

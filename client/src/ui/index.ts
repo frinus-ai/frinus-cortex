@@ -19,6 +19,7 @@ import { Drawer } from './drawer';
 import { FeedPanel } from './feed';
 import { HelpDialog } from './help';
 import { HistoryPopover } from './history';
+import { MemorySearchPanel } from './memory';
 import { Deliveries } from './deliveries';
 import { HoverTip } from './hovertip';
 import { hasRunningShells } from './model';
@@ -78,6 +79,7 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
   let settings: SettingsPopover;
   let worldDialog: WorldDialog;
   let help: HelpDialog;
+  let memory: MemorySearchPanel;
   let area: FreeArea;
   let timelapse: TimelapsePlayer;
   /** A seleção em curso partiu da UI (lista, feed, aviso...), não de um clique no canvas. */
@@ -159,6 +161,7 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
     },
     openHelp: (section) => help.open(section),
     toggleSettings: () => settings.toggle(topbar.settingsBtn),
+    toggleMemory: () => memory.toggle(topbar.memoryBtn),
     toggleWorld: () => worldDialog.toggle(topbar.worldBtn),
     openAbout: () => settings.showAbout(topbar.settingsBtn),
     toggleTimelapse() {
@@ -173,6 +176,7 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
   const sound = new SoundControl(ctx);
   const notifier = new Notifier(ctx, sound.board);
   topbar = new TopBar(ctx);
+  memory = new MemorySearchPanel(ctx);
   sidebar = new Sidebar(ctx);
   // Terminal interativo (Claude Code de verdade, dentro do navegador): abrir, assumir e encerrar sessões.
   const pty = new PtyPanel(ctx);
@@ -289,7 +293,7 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
   const scrim = h('div', { class: 'ui-scrim', attrs: { 'aria-hidden': 'true' }, on: { click: () => ctx.togglePanel('sidebar', false) } });
 
   root.classList.add('ui-root');
-  root.append(timelapse.vignette, topbar.el, sidebar.el, scrim, feed.el, drawer.el, terminal.el, pty.el, timelapse.el, timelapse.badge, toasts.el, banner.el, update.el, empty.el, popups.el, tip.el, settings.el, worldDialog.el, history.el, deliveries.el, help.el, renamer.el, live, splash.el);
+  root.append(timelapse.vignette, topbar.el, sidebar.el, scrim, feed.el, drawer.el, terminal.el, pty.el, timelapse.el, timelapse.badge, toasts.el, banner.el, update.el, empty.el, popups.el, tip.el, settings.el, worldDialog.el, history.el, deliveries.el, help.el, memory.el, renamer.el, live, splash.el);
   area = new FreeArea(world, { root, topbar: topbar.el, sidebar: sidebar.el, drawer: drawer.el, feed: feed.el }, () => ({
     sidebar: panels.sidebar,
     feed: panels.feed,

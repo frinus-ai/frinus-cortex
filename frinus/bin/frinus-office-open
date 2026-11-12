@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# frinus-office-open — garante o escritório no ar e abre a tela no navegador.
+#
+# Usado pelo atalho .desktop. Sobe o serviço (systemd --user frinus-office) se existir e não
+# estiver rodando, espera a porta responder e abre http://127.0.0.1:<porta> no navegador padrão.
+# Em WSL usa wslview (ou powershell.exe) para abrir no navegador do Windows.
+set -euo pipefail
+
+port="${HABBLAUD_PORT:-4748}"
+url="http://127.0.0.1:${port}"
+service="${FRINUS_OFFICE_SERVICE:-frinus-office}"
+
+# Sobe o serviço, se houver systemd --user e a unit existir.
+if command -v systemctl >/dev/null 2>&1 && systemctl --user list-unit-files "${service}.service" >/dev/null 2>&1; then
+  systemctl --user start "${service}.service" 2>/dev/null || true
+fi
+
+# Espera a porta responder (até ~10s); segue mesmo se não subir (o navegador mostra o erro).
+for _ in $(seq 1 20); do
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsS -o /dev/null "${url}/api/health" 2>/dev/null && break
+  fi
+  sleep 0.5
+done
+
+# Abre no navegador com o que existir.
+if grep -qi microsoft /proc/version 2>/dev/null; then
+  if command -v wslview >/dev/null 2>&1; then exec wslview "$url"; fi
+  if command -v powershell.exe >/dev/null 2>&1; then exec powershell.exe -NoProfile Start-Process "$url"; fi
+fi
+for opener in xdg-open gio open; do
+  if command -v "$opener" >/dev/null 2>&1; then exec "$opener" "$url"; fi
+done
+echo "Abra no navegador: $url"

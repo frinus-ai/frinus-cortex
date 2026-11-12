@@ -47,6 +47,8 @@ export class TopBar implements UiComponent {
   private feedBtn: HTMLButtonElement;
   private timelapseBtn: HTMLButtonElement;
   readonly settingsBtn: HTMLButtonElement;
+  /** Abre a busca na memória do Frinus (ui/memory.ts). */
+  readonly memoryBtn: HTMLButtonElement;
   /** Abre a janela do Habblaud World (ao lado de Configurações); a janela decide quando ele aparece. */
   readonly worldBtn: HTMLButtonElement;
   private readonly spawnBtn: HTMLButtonElement;
@@ -111,6 +113,8 @@ export class TopBar implements UiComponent {
     this.worldBtn.hidden = true;
     this.settingsBtn = iconButton(ICONS.settings, tr('Configurações'), () => ctx.toggleSettings());
     this.settingsBtn.setAttribute('aria-haspopup', 'dialog');
+    this.memoryBtn = iconButton(ICONS.search, tr('Buscar na memória do Frinus'), () => ctx.toggleMemory(), 'ui-btn-memory');
+    this.memoryBtn.setAttribute('aria-haspopup', 'dialog');
     this.spawnPanel = new SpawnPanel(ctx);
     ctx.root.append(this.spawnPanel.el);
     this.spawnBtn = iconButton(ICONS.newAgent, tr('Novo agente: começa uma sessão do Claude Code no computador'), () => this.spawnPanel.toggle(this.spawnBtn), 'ui-btn-spawn');
@@ -131,6 +135,7 @@ export class TopBar implements UiComponent {
       this.spawnBtn,
       this.timelapseBtn,
       this.feedBtn,
+      this.memoryBtn,
       this.worldBtn,
       this.settingsBtn,
       iconButton(ICONS.help, tr('Ajuda (?)'), () => ctx.openHelp()),

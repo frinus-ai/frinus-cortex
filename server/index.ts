@@ -8,6 +8,7 @@ import { codexDirsRefused, isDefaultDir } from './accounts/detect';
 import { AccountsService } from './accounts/service';
 import { isTruthy, loadConfig, messagesOffReason, terminalOffReason, worldSocketUrl } from './config';
 import { createApiHandler, sendJson } from './http/app';
+import { createFrinusRoutes } from './http/frinus';
 import { createRequestGuard, isLoopbackHost } from './http/guard';
 import { createRemoteGate, isRemoteRequest, loadSecret, RemoteSessions, startRemoteListener, type RemoteListener } from './http/remote';
 import { Hub } from './http/sse';
@@ -376,6 +377,8 @@ const api = createApiHandler({
   updates,
   remote: config.remote ? { is: isRemoteRequest, allows: (f) => config.remote!.allow.has(f) } : undefined,
   world: world ? createWorldRoutes(world, worldViewer, worldSocial) : undefined,
+  // Busca de memória do Frinus (server/http/frinus.ts): a chave sai do frinus-mcp no .claude.json de cada conta.
+  frinus: createFrinusRoutes({ accounts: () => accounts.entries(), home: config.home }),
 });
 
 const server = http.createServer();
