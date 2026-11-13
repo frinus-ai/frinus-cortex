@@ -24,7 +24,7 @@ import { NameStore } from './model/names';
 import { Office } from './model/office';
 import { RoomAliases } from './model/room-aliases';
 import { createPtyRoutes } from './http/pty';
-import { claudeBinFrom, isExecutableFile, loadPty, PtyManager, type ScreenFactory, type SpawnPty } from './pty/manager';
+import { claudeBinFrom, isExecutableFile, loadPty, parsePermissionMode, PtyManager, type ScreenFactory, type SpawnPty } from './pty/manager';
 import { loadHeadlessScreen } from './pty/screen';
 import { openMainAgent, SessionHistory } from './sources/history';
 import { HistorySet, SourceSet } from './sources/source';
@@ -309,6 +309,7 @@ const ptys = spawnPty
   ? new PtyManager({
       spawn: spawnPty,
       claudeBin: claudeBin ?? 'claude',
+      defaultPermissionMode: parsePermissionMode(process.env.HABBLAUD_PERMISSION_MODE?.trim()),
       accounts: () => accounts.entries().map((a) => ({ id: a.id, dir: a.dir, isDefault: isDefaultDir(a.dir, config.home) })),
       agent: (id) => {
         const a = office.get(id);

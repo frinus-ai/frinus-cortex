@@ -71,6 +71,11 @@ export interface PtyManagerOptions {
   /** Por que o recurso está desligado (quando `spawn` é null). */
   disabledReason?: string;
   claudeBin: string;
+  /**
+   * Modo de permissão das sessões abertas aqui quando o pedido não diz qual (HABBLAUD_PERMISSION_MODE).
+   * Ausente = o padrão do próprio Claude Code (nenhum flag).
+   */
+  defaultPermissionMode?: PermissionMode;
   accounts: () => PtyAccount[];
   agent: (id: string) => PtyAgentRef | undefined;
   onChange: () => void;
@@ -163,12 +168,32 @@ interface ExternalProc {
   proc: ProcInfo;
 }
 
-/** O que uma sessão nova precisa, já validado (pasta, conta e tamanho). */
+/** O que uma sessão nova precisa, já validado (pasta, conta, tamanho e modo de permissão). */
 interface SpawnPlan {
   cwd: string;
   account: PtyAccount;
   cols: number;
   rows: number;
+  mode?: PermissionMode;
+}
+
+/**
+ * Modos de permissão que dá para escolher ao abrir uma sessão. `bypassPermissions` vira
+ * `--dangerously-skip-permissions` (o mesmo dos aliases e do instalador); os outros, `--permission-mode <modo>`;
+ * `default` não passa flag nenhum (o Claude Code pergunta).
+ */
+export const PERMISSION_MODES = ['bypassPermissions', 'auto', 'acceptEdits', 'plan', 'default'] as const;
+export type PermissionMode = (typeof PERMISSION_MODES)[number];
+
+export function parsePermissionMode(v: unknown): PermissionMode | undefined {
+  return typeof v === 'string' && (PERMISSION_MODES as readonly string[]).includes(v) ? (v as PermissionMode) : undefined;
+}
+
+/** Flags do `claude` para o modo. */
+export function permissionArgs(mode: PermissionMode | undefined): string[] {
+  if (!mode || mode === 'default') return [];
+  if (mode === 'bypassPermissions') return ['--dangerously-skip-permissions'];
+  return ['--permission-mode', mode];
 }
 
 export class PtyError extends Error {
@@ -222,7 +247,8 @@ export class PtyManager {
   }
 
   /** Abre uma sessão nova do Claude Code na pasta (`cwd` absoluto), na conta pedida (ou na padrão). */
-  create(p: { cwd: unknown; account?: unknown; cols?: unknown; rows?: unknown }): PtyInfo {
+  create(p: { cwd: unknown; account?: unknown; cols?: unknown; rows?: unknown; mode?: unknown }): PtyInfo {
+    if (p.mode !== undefined && p.mode !== null && p.mode !== '' && !parsePermissionMode(p.mode)) throw new PtyError(400, tr('modo de permissão desconhecido'));
     return this.spawn(this.plan(p, this.takeovers.size));
   }
 
@@ -370,7 +396,7 @@ export class PtyManager {
   }
 
   /** Valida o pedido de uma sessão nova (`reserved`: vagas já prometidas a tomadas em andamento). */
-  private plan(p: { cwd: unknown; account?: unknown; cols?: unknown; rows?: unknown }, reserved = 0): SpawnPlan {
+  private plan(p: { cwd: unknown; account?: unknown; cols?: unknown; rows?: unknown; mode?: unknown }, reserved = 0): SpawnPlan {
     if (!this.opts.spawn) throw new PtyError(503, tr('terminal desligado: {0}', [this.opts.disabledReason ?? tr('indisponível')]));
     // Antes de tudo (o "assumir" encerra a sessão de lá depois daqui): um claude que não roda abriria um terminal que
     // sai na hora.
@@ -389,7 +415,8 @@ export class PtyManager {
     if (!account) throw new PtyError(400, tr('conta desconhecida'));
     const running = [...this.ptys.values()].filter((t) => t.info.exitedAt === undefined).length;
     if (running + Math.max(0, reserved) >= MAX_PTYS) throw new PtyError(429, tr('limite de {0} terminais abertos', [MAX_PTYS]));
-    return { cwd, account, cols: clampInt(p.cols, 20, 400, 100), rows: clampInt(p.rows, 5, 200, 30) };
+    const mode = parsePermissionMode(p.mode) ?? this.opts.defaultPermissionMode;
+    return { cwd, account, cols: clampInt(p.cols, 20, 400, 100), rows: clampInt(p.rows, 5, 200, 30), mode };
   }
 
   private spawn(plan: SpawnPlan, p: { resume?: string; from?: string } = {}): PtyInfo {
@@ -403,7 +430,7 @@ export class PtyManager {
 
     let proc: PtyProcess;
     try {
-      const args = p.resume ? ['--resume', p.resume] : [];
+      const args = [...permissionArgs(plan.mode), ...(p.resume ? ['--resume', p.resume] : [])];
       proc = spawn(this.opts.claudeBin, args, { cwd, cols, rows, env });
     } catch (err) {
       throw new PtyError(500, tr('não consegui abrir o Claude Code: {0}', [errMsg(err)]));
