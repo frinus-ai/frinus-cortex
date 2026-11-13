@@ -17,7 +17,7 @@ export function start(): void {
   document.documentElement.lang = getLocale();
   document.querySelector('meta[name="description"]')?.setAttribute(
     'content',
-    tr('Escritório virtual em pixel art que mostra, em tempo real, o que seus agentes do Claude Code estão fazendo.'),
+    tr('A interface visual do Frinus: veja em tempo real o que seus agentes estão fazendo.'),
   );
 
   const params = new URLSearchParams(location.search);

@@ -77,7 +77,7 @@ export function hasCodexPermission(snap: Pick<OfficeSnapshot, 'agents'> | null):
 }
 
 /** Como ver o Codex ao vivo e aprovar pelo escritório (gaveta de um agente do Codex e ajuda). */
-export const CODEX_LIVE_HINT = tr('Para ver o Codex ao vivo e aprovar pelo escritório: `npm run codex:install` e aprove os hooks em `/hooks` no Codex.');
+export const CODEX_LIVE_HINT = tr('Para ver o Codex ao vivo e aprovar pelo córtex: `npm run codex:install` e aprove os hooks em `/hooks` no Codex.');
 
 /** Políticas de aprovação do Codex (`approval_policy`), quando o servidor as manda no lugar do modo de permissão. */
 const CODEX_APPROVALS: Record<string, string> = {

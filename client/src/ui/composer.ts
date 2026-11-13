@@ -116,7 +116,7 @@ export class MessageComposer {
       {
         class: term ? 'ui-msg__send ui-msg__takeover' : 'ui-btn ui-msg__send ui-msg__takeover',
         type: 'button',
-        title: tr('Trazer esta sessão para o escritório e mandar mensagens daqui'),
+        title: tr('Trazer esta sessão para o córtex e mandar mensagens daqui'),
         on: { click: () => void this.ctx.terminals?.open(this.agentId) },
       },
       tr('Assumir aqui'),

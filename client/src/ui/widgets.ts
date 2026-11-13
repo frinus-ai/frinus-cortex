@@ -128,7 +128,7 @@ export function updateShellActivityLine(el: HTMLElement, wait: ShellWait, now: n
   );
 }
 
-/** Nome do produto no cabeçalho: "Frinus Office" (fork do Habblaud, tema "A Mente"). */
+/** Nome do produto no cabeçalho: "Frinus Córtex". */
 export function wordmark(cls = 'ui-brand__name'): HTMLElement {
-  return h('span', { class: cls }, h('span', { class: 'ui-brand__name-fr', text: 'Frinus' }), h('span', { class: 'ui-brand__name-of', text: 'Office' }));
+  return h('span', { class: cls }, h('span', { class: 'ui-brand__name-fr', text: 'Frinus' }), h('span', { class: 'ui-brand__name-of', text: 'Córtex' }));
 }

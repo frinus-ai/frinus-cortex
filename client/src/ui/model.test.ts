@@ -188,7 +188,7 @@ describe('activityFallback', () => {
     expect(activityFallback({ status: 'waiting' })).toBe('Precisa de você');
     expect(activityFallback({ status: 'shell' })).toBe('Esperando o shell terminar');
     expect(activityFallback({ status: 'done' })).toBe('Concluiu a tarefa');
-    expect(activityFallback({ status: 'offline' })).toBe('Saindo do escritório');
+    expect(activityFallback({ status: 'offline' })).toBe('Saindo do córtex');
   });
 });
 

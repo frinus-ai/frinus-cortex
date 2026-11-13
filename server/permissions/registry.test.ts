@@ -1,4 +1,4 @@
-// Registro dos pedidos de permissão (responder pelo escritório): desvio só com páginas abertas e sessão
+// Registro dos pedidos de permissão (responder pelo córtex): desvio só com páginas abertas e sessão
 // conhecida, snapshot (status 'waiting', sem os argumentos), decisões, esperas do hook, órfãos, expiração,
 // agente que saiu, resposta no terminal (tool_result no transcript), sugestões "sempre permitir" e as
 // perguntas do AskUserQuestion (respostas por posição). Tudo com dados sintéticos.
@@ -88,7 +88,7 @@ describe('PermissionRegistry: registro', () => {
     expect(registry.register(hookInput({ session_id: 'outra' }))).toEqual({ skip: 'unknown-session' });
     expect(registry.register(hookInput({ tool_name: 'AskUserQuestion' }))).toEqual({ skip: 'unsupported-tool' });
     expect(registry.register(askInput({ tool_input: { questions: [] } }))).toEqual({ skip: 'unsupported-tool' });
-    // Mais perguntas do que o escritório mostra: o hook não conseguiria responder todas.
+    // Mais perguntas do que o córtex mostra: o hook não conseguiria responder todas.
     const five = Array.from({ length: 5 }, (_, i) => ({ question: `Pergunta ${i}?`, options: [{ label: 'Sim' }, { label: 'Não' }] }));
     expect(registry.register(askInput({ tool_input: { questions: five } }))).toEqual({ skip: 'unsupported-tool' });
     expect(registry.size).toBe(0);
@@ -183,7 +183,7 @@ describe('PermissionRegistry: decisões e esperas do hook', () => {
     expect(a.status).toBe('working');
     expect(registry.wait(id, 10)).toBeUndefined();
     expect(registry.decide(id, { behavior: 'deny' })).toBe('not-found');
-    expect(office.detail(MAIN)!.history.map((h) => h.text)).toContain('Aprovado no Habblaud (sempre permitir)');
+    expect(office.detail(MAIN)!.history.map((h) => h.text)).toContain('Aprovado no Córtex (sempre permitir)');
   });
 
   it('recusa com motivo e interrupção; decisão sem ninguém esperando fica guardada para a próxima espera', async () => {
@@ -258,7 +258,7 @@ describe('PermissionRegistry: perguntas (AskUserQuestion)', () => {
     const a = snapAgent(office, MAIN)!;
     expect(a.permission).toBeUndefined();
     expect(a.status).toBe('working');
-    const act = office.detail(MAIN)!.history.find((h) => h.text === 'Respondido no Habblaud')!;
+    const act = office.detail(MAIN)!.history.find((h) => h.text === 'Respondido no Córtex')!;
     expect(act).toMatchObject({ icon: '💬', kind: 'other' });
     expect(act.detail).toBe('Banco: SQLite · Testes: Unidade, E2E, “lint”');
     expect(registry.decide(id, d)).toBe('not-found');

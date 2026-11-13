@@ -43,11 +43,11 @@ export const INBOX_BATCH = 5;
 
 export const ERR_NOT_FETCHED = tr('a sessão não buscou a mensagem: o plugin habblaud-mensagens está instalado e a sessão aberta?');
 export const ERR_NOT_CONFIRMED = tr('a sessão não confirmou a entrega');
-export const ERR_GONE = tr('o agente saiu do escritório');
+export const ERR_GONE = tr('o agente saiu do córtex');
 export const ERR_REFUSED = tr('a sessão não aceitou a mensagem');
 export const ERR_SESSION_CHANGED = tr('a conversa do agente mudou (/clear ou /resume) antes da entrega');
 export const ERR_CODEX_UNAVAILABLE =
-  tr('não há como entregar ao Codex agora: rode o Habblaud fora do Docker com o `codex` no PATH (ou HABBLAUD_CODEX_BIN) ou, no Docker, deixe o npm run codex:bridge rodando no Mac');
+  tr('não há como entregar ao Codex agora: rode o Córtex fora do Docker com o `codex` no PATH (ou HABBLAUD_CODEX_BIN) ou, no Docker, deixe o npm run codex:bridge rodando no Mac');
 export const ERR_CODEX_NOT_FETCHED = tr('o auxiliar do Codex não buscou a mensagem: o npm run codex:bridge está rodando no Mac?');
 export const ERR_CODEX_SLOW = tr('o Codex demorou demais com as mensagens anteriores a este agente');
 export const ERR_CODEX_NOT_CONFIRMED = tr('o auxiliar do Codex não confirmou a entrega');
@@ -151,7 +151,7 @@ const isFinal = (e: Entry) => e.msg.status === 'delivered' || e.msg.status === '
  */
 function unavailableReason(a: AgentInfo, reachable: boolean): string | undefined {
   if (a.kind !== 'main') return tr('subagentes não recebem mensagens: mande para o agente principal');
-  if (!present(a)) return tr('o agente já saiu do escritório');
+  if (!present(a)) return tr('o agente já saiu do córtex');
   if (!reachable) return a.provider === 'codex' ? ERR_CODEX_UNAVAILABLE : tr('a sessão não está com o plugin habblaud-mensagens conectado (npm run mod:install)');
   return undefined;
 }

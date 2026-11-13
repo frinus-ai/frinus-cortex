@@ -251,7 +251,7 @@ export class NewChatPanel implements UiComponent {
     setHidden(this.accountList, !hasAccount);
     this.folderPick.disabled = this.picking || this.busy;
     this.modeSelect.disabled = this.busy;
-    setText(this.disabledMsg, enabled ? '' : tr('O terminal interativo está desligado neste escritório.'));
+    setText(this.disabledMsg, enabled ? '' : tr('O terminal interativo está desligado neste córtex.'));
     setHidden(this.disabledMsg, enabled);
   }
 
@@ -299,7 +299,7 @@ export class NewChatPanel implements UiComponent {
       this.keyInput.value = '';
       this.busy = false;
       this.addBtn.disabled = false;
-      return this.say(this.addMsg, tr('O Frinus Office não respondeu.'), true);
+      return this.say(this.addMsg, tr('O Frinus Córtex não respondeu.'), true);
     }
     // A chave sai da memória do navegador assim que o pedido parte (sucesso ou erro).
     this.keyInput.value = '';
@@ -358,7 +358,7 @@ export class NewChatPanel implements UiComponent {
         this.folderInput.focus();
       }
     } catch {
-      this.say(this.startMsg, tr('O Frinus Office não respondeu.'), true);
+      this.say(this.startMsg, tr('O Frinus Córtex não respondeu.'), true);
     } finally {
       this.picking = false;
       this.render();

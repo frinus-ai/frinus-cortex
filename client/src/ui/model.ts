@@ -32,7 +32,7 @@ export function activityFallback(agent: Pick<AgentInfo, 'status' | 'waitingFor'>
     case 'done':
       return tr('Concluiu a tarefa');
     case 'offline':
-      return tr('Saindo do escritório');
+      return tr('Saindo do córtex');
     default:
       return tr('Aguardando instruções');
   }

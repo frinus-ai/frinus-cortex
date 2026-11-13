@@ -58,7 +58,7 @@ export class SocialSection {
       h('span', { class: 'ui-social__purse', attrs: { 'aria-hidden': 'true' }, text: '🪙' }),
       h('div', { class: 'ui-social__wallet-body' }, h('div', { class: 'ui-social__wallet-line' }, this.coins, this.record), this.earned),
     );
-    setTitle(wallet, tr('Moedinhas fictícias: entra no escritório com um saldo, ganha 🪙10 por tarefa concluída e 🪙5 por pedido atendido, e aposta com os colegas. Ficam salvas neste navegador.'));
+    setTitle(wallet, tr('Moedinhas fictícias: entra no córtex com um saldo, ganha 🪙10 por tarefa concluída e 🪙5 por pedido atendido, e aposta com os colegas. Ficam salvas neste navegador.'));
     this.el = h(
       'section',
       { class: 'ui-sec ui-social' },

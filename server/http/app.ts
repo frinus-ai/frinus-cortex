@@ -435,7 +435,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
     if (terminalMatch) {
       if (method !== 'GET') methodNotAllowed(res, 'GET');
       else if (!terminals) {
-        sendJson(res, 403, { error: tr('terminal desligado: ele só funciona com o Habblaud acessível apenas pelo próprio computador') });
+        sendJson(res, 403, { error: tr('terminal desligado: ele só funciona com o Córtex acessível apenas pelo próprio computador') });
       } else if (!trusted(req, 'terminal')) {
         sendJson(res, 403, { error: denied(req, tr('o terminal só abre pelo próprio computador (http://localhost ou http://127.0.0.1)')) });
       } else {
@@ -461,7 +461,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
     if (path === '/api/permissions' || path.startsWith('/api/permissions/')) {
       // Responder pelo escritório age sobre as sessões: a mesma trava do terminal (bind local + Host local).
       if (!deps.permissions) {
-        sendJson(res, 403, { error: tr('responder pelo escritório desligado: só funciona com o Habblaud acessível apenas pelo próprio computador') });
+        sendJson(res, 403, { error: tr('responder pelo córtex desligado: só funciona com o Córtex acessível apenas pelo próprio computador') });
       } else if (!trusted(req, 'permissions')) {
         sendJson(res, 403, { error: denied(req, tr('pedidos de permissão só são respondidos pelo próprio computador (http://localhost ou http://127.0.0.1)')) });
       } else {
@@ -482,7 +482,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       // Mudar o personagem age sobre o escritório: a mesma trava do terminal (bind local + Host local).
       if (method !== 'PUT' && method !== 'DELETE') methodNotAllowed(res, 'PUT, DELETE');
       else if (!deps.terminal) {
-        sendJson(res, 403, { error: tr('editar o personagem desligado: só funciona com o Habblaud acessível apenas pelo próprio computador') });
+        sendJson(res, 403, { error: tr('editar o personagem desligado: só funciona com o Córtex acessível apenas pelo próprio computador') });
       } else if (!trusted(req)) {
         sendJson(res, 403, { error: denied(req, tr('o personagem só é editado pelo próprio computador (http://localhost ou http://127.0.0.1)')) });
       } else {
@@ -510,7 +510,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
     if (path === '/api/spawn' || path.startsWith('/api/spawn/')) {
       // Abre uma sessão nova no app do Claude: roda código no computador, então a mesma trava das mensagens.
       const spawn = deps.spawn;
-      if (!spawn) sendJson(res, 403, { error: tr('novo agente pelo escritório desligado') });
+      if (!spawn) sendJson(res, 403, { error: tr('novo agente pelo córtex desligado') });
       else if (!trusted(req, 'spawn')) sendJson(res, 403, { error: denied(req, tr('agentes novos só são abertos pelo próprio computador (http://localhost)')) });
       else if (path === '/api/spawn' && isRead) sendJson(res, 200, { available: spawn.available(), mode: spawn.mode() });
       else if (path === '/api/spawn/folders') {
@@ -657,7 +657,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       // Só o auxiliar do host, pela porta local (nunca pela remota); fora do Docker, só pelo loopback.
       const spawn = deps.spawn;
       if (method !== 'POST') methodNotAllowed(res, 'POST');
-      else if (!spawn) sendJson(res, 403, { error: tr('novo agente pelo escritório desligado') });
+      else if (!spawn) sendJson(res, 403, { error: tr('novo agente pelo córtex desligado') });
       else if (!trusted(req) || (!deps.inDocker && !isLoopbackAddress(req.socket.remoteAddress))) {
         sendJson(res, 403, { error: denied(req, tr('só o auxiliar do próprio computador')) });
       } else if (path === '/api/host/spawn/poll') {
@@ -677,7 +677,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       // As mensagens entram na sessão como se você as tivesse digitado: a mesma trava (recurso ligado + Host local).
       if (!deps.messages) {
         sendJson(res, 403, {
-          error: tr('mensagens pelo escritório desligadas: só funcionam com o Habblaud acessível apenas pelo próprio computador (e sem HABBLAUD_MENSAGENS=0)'),
+          error: tr('mensagens pelo córtex desligadas: só funcionam com o Córtex acessível apenas pelo próprio computador (e sem HABBLAUD_MENSAGENS=0)'),
         });
       } else if (!trusted(req, 'messages')) {
         sendJson(res, 403, { error: denied(req, tr('mensagens só são mandadas pelo próprio computador (http://localhost ou http://127.0.0.1)')) });
@@ -706,7 +706,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
     if (path === '/api/rooms/rename') {
       // Como o personagem: a mesma trava do terminal (bind local + Host local).
       if (method !== 'POST') methodNotAllowed(res, 'POST');
-      else if (!deps.terminal) sendJson(res, 403, { error: tr('renomear salas desligado: só funciona com o Habblaud acessível apenas pelo próprio computador') });
+      else if (!deps.terminal) sendJson(res, 403, { error: tr('renomear salas desligado: só funciona com o Córtex acessível apenas pelo próprio computador') });
       else if (!trusted(req)) sendJson(res, 403, { error: denied(req, tr('renomear salas só pelo próprio computador (http://localhost)')) });
       else
         readJson(req)

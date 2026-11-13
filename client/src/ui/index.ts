@@ -424,12 +424,6 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
         e.preventDefault();
         help.open();
         break;
-      case 'f':
-      case 'F':
-        e.preventDefault();
-        if (selection?.type === 'agent') drawer.toggleFollow();
-        else ctx.announce(tr('Selecione um agente para seguir.'));
-        break;
       case 't':
       case 'T':
         e.preventDefault();
@@ -481,7 +475,7 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
     if (terminal.isOpen && (id === null || terminal.agentId === id)) terminal.close();
     else if (id === null) ctx.announce(tr('Selecione um agente para abrir o terminal.'));
     else if (!store.snapshot?.meta.terminal || !access().terminal) ctx.announce(`${TERMINAL_UNAVAILABLE_HINT}.`);
-    else if (!ctx.agent(id)) ctx.announce(tr('O agente já saiu do escritório.'));
+    else if (!ctx.agent(id)) ctx.announce(tr('O agente já saiu do córtex.'));
     else terminal.open(id);
   }
 

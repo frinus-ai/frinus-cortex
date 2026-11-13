@@ -33,7 +33,7 @@ export function createMessageRoutes(registry: MessageRegistry): (req: IncomingMe
     if ('message' in r) return sendJson(res, 201, r.message);
     switch (r.error) {
       case 'not-found':
-        return sendJson(res, 404, { error: tr('agente desconhecido: ele já saiu do escritório?') });
+        return sendJson(res, 404, { error: tr('agente desconhecido: ele já saiu do córtex?') });
       case 'unavailable':
         return sendJson(res, 409, { error: r.reason });
       case 'too-many':
@@ -82,6 +82,6 @@ export function createMessageRoutes(registry: MessageRegistry): (req: IncomingMe
     }
     const msg = registry.get(id);
     if (msg) sendJson(res, 200, msg);
-    else sendJson(res, 404, { error: tr('mensagem desconhecida: ela já foi resolvida há mais de 10 min ou o Habblaud reiniciou') });
+    else sendJson(res, 404, { error: tr('mensagem desconhecida: ela já foi resolvida há mais de 10 min ou o Córtex reiniciou') });
   };
 }

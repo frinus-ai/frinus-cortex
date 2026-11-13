@@ -269,7 +269,7 @@ export class PtyManager {
     } catch (err) {
       throw new PtyError(500, tr('não consegui encerrar a sessão: {0}', [errMsg(err)]));
     }
-    log.info(tr('Agente {0} encerrado pelo escritório.', [agentId]));
+    log.info(tr('Agente {0} encerrado pelo córtex.', [agentId]));
   }
 
   /**
@@ -321,7 +321,7 @@ export class PtyManager {
       // A sessão de lá já foi encerrada: dizer como continuar a conversa.
       throw new PtyError(500, tr('a sessão foi encerrada no outro terminal, mas não abriu aqui ({0}); para continuar: claude --resume {1}', [errMsg(err), agent.sessionId]));
     }
-    log.info(tr('Agente {0} assumido pelo escritório (sessão {1}).', [agentId, agent.sessionId]));
+    log.info(tr('Agente {0} assumido pelo córtex (sessão {1}).', [agentId, agent.sessionId]));
     return info;
   }
 

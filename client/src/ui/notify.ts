@@ -7,7 +7,7 @@ import type { UiComponent, UiContext } from './context';
 import { computeCounters } from './model';
 import { tr } from '../../../shared/i18n';
 
-const BASE_TITLE = 'Frinus Office';
+const BASE_TITLE = 'Frinus Córtex';
 
 export type NotificationState = 'unsupported' | 'default' | 'granted' | 'denied';
 
@@ -54,7 +54,7 @@ export class Notifier implements UiComponent {
     else if (n.level === 'success') this.sounds.play('pop');
     if (n.level === 'alert' && prefs.browserNotifications && document.hidden && notificationState() === 'granted') {
       try {
-        const notification = new Notification(tr('Habblaud — precisa de você'), {
+        const notification = new Notification(tr('Frinus Córtex — precisa de você'), {
           body: n.text,
           tag: n.agentId ?? n.id,
           icon: '/assets/brand/favicon-32.png',

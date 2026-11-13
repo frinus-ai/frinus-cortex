@@ -23,7 +23,7 @@ interface CounterRefs {
 /** Contadores fixos (o de shells é à parte: só aparece quando há shells rodando). */
 const COUNTERS: { key: Exclude<keyof Counters, 'shells'>; singular: string; plural: string; hint: string }[] = [
   { key: 'rooms', singular: tr('sala'), plural: tr('salas'), hint: tr('Salas abertas (uma por projeto)') },
-  { key: 'agents', singular: tr('agente'), plural: tr('agentes'), hint: tr('Agentes no escritório (principais e subagentes)') },
+  { key: 'agents', singular: tr('agente'), plural: tr('agentes'), hint: tr('Agentes no córtex (principais e subagentes)') },
   { key: 'working', singular: tr('trabalhando'), plural: tr('trabalhando'), hint: tr('Agentes processando um pedido agora') },
   { key: 'subagents', singular: tr('subagente'), plural: tr('subagentes'), hint: tr('Subagentes em atividade') },
   { key: 'waiting', singular: tr('precisa de você'), plural: tr('precisam de você'), hint: tr('Agentes esperando sua resposta no terminal') },
@@ -73,7 +73,7 @@ export class TopBar implements UiComponent {
     this.pill = h('span', { class: 'ui-pill', role: 'status', attrs: { 'aria-live': 'polite' } }, h('span', { class: 'ui-pill__dot' }), this.pillText);
     this.demoBadge = h('span', { class: 'ui-demo-badge', text: tr('Demonstração'), title: tr('Agentes de demonstração ligados (desligue em Configurações)'), hidden: true });
 
-    const counterWrap = h('div', { class: 'ui-counters', role: 'group', attrs: { 'aria-label': tr('Resumo do escritório') } });
+    const counterWrap = h('div', { class: 'ui-counters', role: 'group', attrs: { 'aria-label': tr('Resumo do córtex') } });
     for (const c of COUNTERS) {
       const value = h('span', { class: 'ui-counter__value', text: '0' });
       const label = h('span', { class: 'ui-counter__label', text: c.plural });
@@ -207,7 +207,7 @@ export class TopBar implements UiComponent {
         ? tr('Dados simulados no navegador (?mock=1)')
         : conn === 'open'
           ? tr('Recebendo eventos do servidor em tempo real')
-          : tr('Sem conexão com o servidor do Habblaud'),
+          : tr('Sem conexão com o servidor do Córtex'),
     );
     setHidden(this.demoBadge, !(conn === 'open' && snap?.meta.demo));
 
