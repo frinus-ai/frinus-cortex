@@ -16,6 +16,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tr } from '../../shared/i18n';
 import { HttpError, readJson, sendJson } from './app';
+import { isFrinusMcpServer } from '../accounts/detect';
 import { ProvisionError, provisionFrinusAccount } from '../accounts/provision';
 import { pickFolder } from './folder-picker';
 
@@ -62,18 +63,25 @@ function isDefaultDir(dir: string, home: string): boolean {
 }
 
 /**
- * Lê a X-API-Key do frinus-mcp no .claude.json da conta (mcpServers["frinus-mcp"].env.FRINUS_API_KEY).
- * Lê a cada chamada (pega rotação de chave) e devolve só o valor para uso imediato — nunca é guardado.
+ * Lê a X-API-Key do MCP do Frinus no .claude.json da conta (mcpServers[<servidor do Frinus>].env.FRINUS_API_KEY).
+ * O servidor pode ter qualquer nome reconhecido por isFrinusMcpServer ("frinus-mcp", "frinus"...): a mesma regra que
+ * decide quais contas aparecem no córtex. Antes só valia "frinus-mcp", e contas instaladas com o nome "frinus"
+ * sumiam do seletor de conta. Lê a cada chamada (pega rotação de chave) e devolve só o valor — nunca é guardado.
  */
 function readFrinusKey(dir: string, home: string): string | undefined {
   const candidates = isDefaultDir(dir, home) ? [join(home, '.claude.json'), join(dir, '.claude.json')] : [join(dir, '.claude.json')];
   for (const file of candidates) {
     if (!existsSync(file)) continue;
     try {
-      const j = JSON.parse(readFileSync(file, 'utf8')) as { mcpServers?: Record<string, { env?: Record<string, string> }> };
-      const env = j.mcpServers?.['frinus-mcp']?.env;
-      const key = env?.FRINUS_API_KEY;
-      if (typeof key === 'string' && key.trim()) return key.trim();
+      const j = JSON.parse(readFileSync(file, 'utf8')) as { mcpServers?: Record<string, { env?: Record<string, unknown> }> };
+      const servers = j.mcpServers && typeof j.mcpServers === 'object' ? j.mcpServers : {};
+      // "frinus-mcp" primeiro (nome padrão do instalador); depois qualquer outro servidor do Frinus.
+      const names = Object.keys(servers).sort((x, y) => Number(y === 'frinus-mcp') - Number(x === 'frinus-mcp'));
+      for (const name of names) {
+        if (!isFrinusMcpServer(name, servers[name])) continue;
+        const key = servers[name]?.env?.FRINUS_API_KEY;
+        if (typeof key === 'string' && key.trim()) return key.trim();
+      }
     } catch {
       // JSON inválido (sendo gravado?): tenta o próximo candidato
     }

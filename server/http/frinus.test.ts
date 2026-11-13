@@ -49,10 +49,10 @@ describe('frinusIdentity', () => {
 });
 
 describe('contas do seletor de memória', () => {
-  function account(home: string, id: string, key?: string) {
+  function account(home: string, id: string, key?: string, server = 'frinus-mcp') {
     const dir = join(home, id);
     mkdirSync(dir, { recursive: true });
-    if (key) writeFileSync(join(dir, '.claude.json'), JSON.stringify({ mcpServers: { 'frinus-mcp': { env: { FRINUS_API_KEY: key } } } }));
+    if (key) writeFileSync(join(dir, '.claude.json'), JSON.stringify({ mcpServers: { [server]: { env: { FRINUS_API_KEY: key } } } }));
     return { id, dir, detected: { email: `${id}@claude.ai`, organization: 'Org do Claude' } };
   }
 
@@ -68,5 +68,12 @@ describe('contas do seletor de memória', () => {
     ]);
     expect(JSON.stringify(list)).not.toContain('Org do Claude');
     expect(JSON.stringify(list)).not.toContain('sk-frinus');
+  });
+
+  it('acha a chave com o servidor do Frinus com outro nome ("frinus"), não só "frinus-mcp"', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'frinus-acc-'));
+    const accs = [account(home, '.claude-a', 'sk-frinus-a'), account(home, '.claude-sc', 'sk-frinus-sc', 'frinus')];
+    const list = await frinusAccountsForTest({ accounts: () => accs, home }, async () => null);
+    expect(list.map((a) => a.id).sort()).toEqual(['.claude-a', '.claude-sc']);
   });
 });

@@ -1,7 +1,5 @@
 // Barra superior: marca, conexão, contadores, uso por conta e botões de controle.
-import { access } from '../net/access';
 import { NewChatPanel } from './newchat';
-import { SpawnPanel } from './spawn';
 import type { UiComponent, UiContext } from './context';
 import { h, iconButton, setAttr, setHidden, setText, setTitle, setVariant } from './dom';
 import { formatDuration, formatInt } from './format';
@@ -52,8 +50,6 @@ export class TopBar implements UiComponent {
   readonly memoryBtn: HTMLButtonElement;
   /** Abre a janela do Habblaud World (ao lado de Configurações); a janela decide quando ele aparece. */
   readonly worldBtn: HTMLButtonElement;
-  private readonly spawnBtn: HTMLButtonElement;
-  private readonly spawnPanel: SpawnPanel;
   /** Botão em destaque "Nova conversa com o Frinus" + a janela que ele abre (conta + pasta, ou adicionar conta). */
   private readonly newChatBtn: HTMLButtonElement;
   private readonly newChatPanel: NewChatPanel;
@@ -119,11 +115,7 @@ export class TopBar implements UiComponent {
     this.settingsBtn.setAttribute('aria-haspopup', 'dialog');
     this.memoryBtn = iconButton(ICONS.search, tr('Buscar na memória do Frinus'), () => ctx.toggleMemory(), 'ui-btn-memory');
     this.memoryBtn.setAttribute('aria-haspopup', 'dialog');
-    this.spawnPanel = new SpawnPanel(ctx);
-    ctx.root.append(this.spawnPanel.el);
-    this.spawnBtn = iconButton(ICONS.newAgent, tr('Novo agente: começa uma sessão do Claude Code no computador'), () => this.spawnPanel.toggle(this.spawnBtn), 'ui-btn-spawn');
-    this.spawnBtn.setAttribute('aria-haspopup', 'dialog');
-    this.spawnBtn.hidden = true;
+    // Frinus Córtex: o único jeito de começar uma sessão é a "Nova conversa com o Frinus" (sem o "Novo agente" do Habblaud).
     // "Nova conversa com o Frinus": botão em destaque (texto + ícone) que abre a janela de conta/pasta.
     this.newChatPanel = new NewChatPanel(ctx);
     ctx.root.append(this.newChatPanel.el);
@@ -145,7 +137,6 @@ export class TopBar implements UiComponent {
     const panelGroup = h(
       'div',
       { class: 'ui-btn-group', role: 'group', attrs: { 'aria-label': tr('Painéis') } },
-      this.spawnBtn,
       this.timelapseBtn,
       this.feedBtn,
       this.memoryBtn,
@@ -240,7 +231,6 @@ export class TopBar implements UiComponent {
     this.newChatPanel.render();
     // Conversa com o Frinus: sempre visível (menos em simulação/timelapse); a própria janela diz se o terminal está off.
     setHidden(this.newChatBtn, store.mock || store.replaying);
-    setHidden(this.spawnBtn, !access().spawn || store.mock || store.replaying);
 
     this.sidebarBtn.setAttribute('aria-pressed', String(this.ctx.isPanelOpen('sidebar')));
     this.feedBtn.setAttribute('aria-pressed', String(this.ctx.isPanelOpen('feed')));
