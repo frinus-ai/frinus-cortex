@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# install.sh — instalador ponta a ponta do Frinus (cliente) para Linux e WSL.
+# install.sh — instalador ponta a ponta do Frinus (cliente) para Linux, WSL e macOS.
+#
+# O cliente normalmente NÃO chama este arquivo direto: ele roda o instalador publicado na release
+# (frinus/get.sh, servido como "install.sh"), que baixa a versão pronta e chama este script com --gui.
 #
 # Faz, nesta ordem:
 #   1) PRÉ-REQUISITOS: Node 22 (via nvm, se preciso) e o Claude Code — delegados ao instalador do frinus-mcp.
-#   2) CADASTRA UMA conta Frinus (apelido + chave), reaproveitando o install.sh do frinus-mcp:
-#      cria ~/.claude-<apelido>, liga o MCP frinus-mcp no .claude.json, instala o comando "frinus" e a equipe.
+#   2) CADASTRA UMA conta Frinus (só a chave), reaproveitando o install.sh do frinus-mcp:
+#      liga o MCP frinus-mcp no .claude.json da conta (~/.claude; ~/.claude-<apelido> com --alias),
+#      instala o comando "frinus" e a equipe.
 #      As DEMAIS contas entram depois pela própria interface (botão "Adicionar conta Frinus"), sem reinstalar.
 #   3) PERGUNTA se o cliente quer a INTERFACE GRÁFICA (Frinus Office). É OPCIONAL:
 #        • SIM  -> tudo já vem ativado em 1 passo: build + mod/plugins em TODAS as contas Frinus + dados de uso +
@@ -16,8 +20,10 @@
 #
 # Opções:
 #   --dry-run            mostra o que faria, sem instalar nem gravar nada
-#   --alias <apelido>    apelido da conta (pasta ~/.claude-<apelido>); sem isto, pergunta
+#   --alias <apelido>    apelido da conta (pasta ~/.claude-<apelido>); sem isto, usa a conta padrão ~/.claude
 #   --gui | --no-gui     não pergunta: instala (ou não) a interface gráfica
+#   --dictation          instala também o ditado por voz (whisper local, ~150 MB; desligado por padrão)
+#   --no-dictation       (padrão) não instala o ditado
 #   --mcp-install <path> caminho do install.sh do frinus-mcp (senão procura ao lado do repo / na variável / baixa)
 #   --service <nome>     nome do serviço systemd da interface (padrão: frinus-office)
 #   -h, --help           esta ajuda
@@ -28,7 +34,7 @@ ALIAS=""
 GUI=""            # "", "1" (sim) ou "0" (não)
 MCP_INSTALL=""
 SERVICE_NAME=frinus-office
-DICTATION=1       # ditado por voz (whisper local); --no-dictation desliga
+DICTATION=0       # ditado por voz (whisper local); --dictation liga (pesado: compila whisper.cpp + modelo ~150 MB)
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -36,10 +42,11 @@ while [ $# -gt 0 ]; do
     --alias) ALIAS="${2:?--alias precisa de um apelido}"; shift ;;
     --gui) GUI=1 ;;
     --no-gui) GUI=0 ;;
+    --dictation) DICTATION=1 ;;
     --no-dictation) DICTATION=0 ;;
     --mcp-install) MCP_INSTALL="${2:?--mcp-install precisa de um caminho}"; shift ;;
     --service) SERVICE_NAME="${2:?--service precisa de um nome}"; shift ;;
-    -h|--help) sed -n '2,37p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
     *) echo "install: opção desconhecida: $1" >&2; exit 2 ;;
   esac
   shift
@@ -48,12 +55,10 @@ done
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"     # .../frinus
 root="$(cd "$here/.." && pwd)"                            # .../frinus-office
 
-# Node 22 (nvm) na frente do PATH, se existir (o build da interface precisa dele).
-node_bin="/home/renato/.nvm/versions/node/v22.17.0/bin"
-[ -d "$node_bin" ] && export PATH="$node_bin:$PATH"
-
-is_wsl=0
-grep -qi microsoft /proc/version 2>/dev/null && is_wsl=1
+# shellcheck disable=SC1091
+. "$here/bin/lib.sh"
+frinus_load_node
+OS="$(frinus_os)"
 
 say()  { printf '\n\033[1;35m==>\033[0m %s\n' "$*"; }
 run()  { printf '  + %s\n' "$*"; [ "$DRY_RUN" = 1 ] || "$@"; }
@@ -64,7 +69,7 @@ ask()  { # ask <prompt> -> ecoa a resposta (lê do terminal real quando há um)
   printf '%s' "$a"
 }
 
-say "Frinus — instalação ($([ "$is_wsl" = 1 ] && echo WSL || echo Linux))"
+say "Frinus — instalação ($OS)"
 [ "$DRY_RUN" = 1 ] && echo "   (dry-run: nada será alterado)"
 
 # --- Ditado por voz (whisper local, pt-BR) — DEPENDÊNCIAS -----------------------------------------------------
@@ -80,6 +85,7 @@ LOCAL_BIN="$HOME/.local/bin"
 have() { command -v "$1" >/dev/null 2>&1; }
 apt_install() { # apt_install <pacotes...> — usa sudo se não for root; silencioso no dry-run
   have apt-get || { echo "   (sem apt-get: instale manualmente: $*)"; return 1; }
+  [ "$OS" = mac ] && { echo "   (macOS: instale com o Homebrew: brew install $*)"; return 1; }
   local sudo=""; [ "$(id -u)" = 0 ] || sudo="sudo"
   run $sudo apt-get update -y
   run $sudo apt-get install -y "$@"
@@ -134,10 +140,14 @@ MCP_URL="https://raw.githubusercontent.com/frinus-ai/frinus-mcp/client-installer
 
 # --- 1) + 2) pré-requisitos + cadastro de UMA conta ----------------------------------------------------------
 say "Cadastro da conta Frinus (as demais entram depois pela interface)"
-[ -n "$ALIAS" ] || ALIAS="$(ask 'Apelido desta conta (ex.: monetizze):')"
-ALIAS="$(printf '%s' "$ALIAS" | tr '[:upper:]' '[:lower:]' | sed -E 's/^\.?claude[-_.]?//; s/[^a-z0-9_-]//g')"
-[ -n "$ALIAS" ] || { echo "install: apelido inválido." >&2; exit 2; }
-CFG="$HOME/.claude-$ALIAS"
+if [ -n "$ALIAS" ]; then
+  ALIAS="$(printf '%s' "$ALIAS" | tr '[:upper:]' '[:lower:]' | sed -E 's/^\.?claude[-_.]?//; s/[^a-z0-9_-]//g')"
+  [ -n "$ALIAS" ] || { echo "install: apelido inválido." >&2; exit 2; }
+  CFG="$HOME/.claude-$ALIAS"
+else
+  # Conta padrão do Claude Code: o cliente não precisa escolher nada além de colar a chave.
+  CFG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+fi
 echo "   conta -> $CFG"
 
 if [ "$DRY_RUN" = 1 ]; then
@@ -159,6 +169,9 @@ else
   fi
 fi
 
+# O instalador do frinus-mcp pode ter acabado de instalar o Node (nvm): recarrega o PATH.
+frinus_load_node
+
 # --- 3) interface gráfica (OPCIONAL) -------------------------------------------------------------------------
 if [ -z "$GUI" ]; then
   resp="$(ask 'Instalar a interface gráfica Frinus Office? Se sim, já vem tudo pronto e ativado. [s/N]:')"
@@ -172,16 +185,43 @@ if [ "$GUI" = 1 ]; then
     install_dictation
     set -e
   fi
+  # O escritório precisa do Node 22.12+; o frinus-mcp aceita Node 18+. Se o daqui for velho, instala o 22 pelo nvm.
+  if ! frinus_node_ok; then
+    say "Atualizando o motor de base (Node 22) para a interface"
+    if [ "$DRY_RUN" = 1 ]; then
+      echo "  + rodaria: nvm install 22 && nvm alias default 22"
+    else
+      frinus_load_nvm
+      if ! command -v nvm >/dev/null 2>&1; then
+        curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash >/dev/null 2>&1 || true
+        frinus_load_nvm
+      fi
+      set +u
+      nvm install 22 >/dev/null 2>&1 && nvm alias default 22 >/dev/null 2>&1 && nvm use --silent 22 >/dev/null 2>&1 || true
+      set -u
+      frinus_node_ok || { echo "install: não consegui o Node 22. Verifique a internet e rode de novo." >&2; exit 1; }
+    fi
+  fi
   say "Interface gráfica: instalando e ATIVANDO tudo (nada a configurar à mão)"
   # install-office.sh já faz: build + FRINUS_ONLY mod:install (mod/plugins + uso em TODAS as contas Frinus) +
-  # serviço systemd --user na 4748 + atalho. Com o uso lido de ~/.habblaud/usage (office.env), o cartão de cada
+  # início automático na 4748 + atalho (Linux/macOS; no WSL, pelo Windows). Com o uso lido de ~/.habblaud/usage (office.env), o cartão de cada
   # conta mostra o consumo sem "Como ativar".
   if [ "$DRY_RUN" = 1 ]; then
     run bash "$here/bin/install-office.sh" --dry-run --service "$SERVICE_NAME"
   else
     bash "$here/bin/install-office.sh" --service "$SERVICE_NAME"
   fi
-  say "Pronto! A interface sobe sozinha e abre em http://127.0.0.1:4748 — tudo já ativado."
+  case "$OS" in
+    wsl) say "Pronto! No Windows, abra pelo atalho \"Frinus Office\" na área de trabalho." ;;
+    mac) say "Pronto! Abra pelo atalho \"Frinus Office\" na Mesa. Abrindo agora no navegador…" ;;
+    *)   say "Pronto! Abra pelo menu (\"Frinus Office\"). Abrindo agora no navegador…" ;;
+  esac
+  echo "   Endereço: http://127.0.0.1:4748"
+  echo "   Na primeira conversa, o Claude pede para entrar na sua conta Claude (abre o navegador)."
+  # Abre a tela (melhor esforço). No WSL quem abre é o instalador do Windows.
+  if [ "$DRY_RUN" != 1 ] && [ "$OS" != wsl ] && [ "${FRINUS_NO_OPEN:-}" != 1 ]; then
+    "$here/bin/frinus-office-open" >/dev/null 2>&1 || true
+  fi
 else
   say "Pronto! Só o Frinus no terminal."
   echo "   Abra um terminal novo e digite:  frinus"

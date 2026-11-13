@@ -92,7 +92,7 @@ export function findRoot(from: string): string {
     if (existsSync(pkg)) {
       try {
         const name = (JSON.parse(readFileSync(pkg, 'utf8')) as { name?: unknown }).name;
-        if (name === 'habblaud') return dir;
+        if (name === 'habblaud' || name === 'frinus-office') return dir;
       } catch {
         // package.json ilegível: continua subindo
       }

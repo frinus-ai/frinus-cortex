@@ -1,14 +1,14 @@
 {
-  "name": "habblaud",
-  "version": "1.0.3",
+  "name": "frinus-office",
+  "version": "0.1.0",
   "private": true,
-  "description": "Escritório virtual animado que mostra, em tempo real, o que seus agentes do Claude Code estão fazendo.",
+  "description": "Frinus Office — escritório visual dos agentes do Frinus (fork do Habblaud, MIT).",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/marmottajr/habblaud.git"
+    "url": "git+https://github.com/frinus-ai/frinus-office.git"
   },
-  "homepage": "https://github.com/marmottajr/habblaud#readme",
+  "homepage": "https://github.com/frinus-ai/frinus-office#readme",
   "type": "module",
   "engines": {
     "node": ">=22.12"
@@ -46,6 +46,9 @@
     "remote:mdns": "tsx scripts/remote-mdns.ts",
     "release": "tsx scripts/release.ts"
   },
+  "dependencies": {
+    "tsx": "^4.23.15"
+  },
   "devDependencies": {
     "@fontsource/pixelify-sans": "^5.3.0",
     "@types/node": "^22.20.5",
@@ -53,7 +56,6 @@
     "@xterm/xterm": "^6.0.0",
     "esbuild": "^0.28.2",
     "playwright-core": "^1.64.0",
-    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.3"

@@ -1,27 +1,31 @@
 #!/usr/bin/env bash
 # frinus-office-open — garante o escritório no ar e abre a tela no navegador.
 #
-# Usado pelo atalho .desktop. Sobe o serviço (systemd --user frinus-office) se existir e não
-# estiver rodando, espera a porta responder e abre http://127.0.0.1:<porta> no navegador padrão.
-# Em WSL usa wslview (ou powershell.exe) para abrir no navegador do Windows.
+# Usado pelos atalhos (Linux .desktop, macOS .command). Se o escritório não responde, sobe pelo serviço
+# (systemd --user / LaunchAgent) e, sem serviço, em segundo plano direto; espera a porta e abre
+# http://127.0.0.1:<porta> no navegador padrão. Em WSL usa wslview (ou powershell.exe) para abrir no Windows.
 set -euo pipefail
 
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 port="${HABBLAUD_PORT:-4748}"
 url="http://127.0.0.1:${port}"
 service="${FRINUS_OFFICE_SERVICE:-frinus-office}"
 
-# Sobe o serviço, se houver systemd --user e a unit existir.
-if command -v systemctl >/dev/null 2>&1 && systemctl --user list-unit-files "${service}.service" >/dev/null 2>&1; then
-  systemctl --user start "${service}.service" 2>/dev/null || true
-fi
+up() { curl -fsS -o /dev/null --max-time 2 "${url}/api/health" 2>/dev/null; }
 
-# Espera a porta responder (até ~10s); segue mesmo se não subir (o navegador mostra o erro).
-for _ in $(seq 1 20); do
-  if command -v curl >/dev/null 2>&1; then
-    curl -fsS -o /dev/null "${url}/api/health" 2>/dev/null && break
+if ! up; then
+  if [ "$(uname -s)" = Darwin ] && launchctl print "gui/$(id -u)/br.com.frinus.office" >/dev/null 2>&1; then
+    launchctl kickstart "gui/$(id -u)/br.com.frinus.office" >/dev/null 2>&1 || true
+  elif command -v systemctl >/dev/null 2>&1 && systemctl --user cat "${service}.service" >/dev/null 2>&1; then
+    systemctl --user start "${service}.service" 2>/dev/null || true
+  else
+    log="${HABBLAUD_DATA_DIR:-$HOME/.frinus-office}/office.log"
+    mkdir -p "$(dirname "$log")"
+    nohup "$here/frinus-office" >>"$log" 2>&1 &
   fi
-  sleep 0.5
-done
+  # Espera a porta responder (até ~20s); segue mesmo se não subir (o navegador mostra o erro).
+  for _ in $(seq 1 40); do up && break; sleep 0.5; done
+fi
 
 # Abre no navegador com o que existir.
 if grep -qi microsoft /proc/version 2>/dev/null; then

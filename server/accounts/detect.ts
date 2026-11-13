@@ -199,7 +199,8 @@ function scanClaudeDirs(env: NodeJS.ProcessEnv, home: string): { dirs: string[];
       if (!ent.name.startsWith('.claude')) continue;
       if (!ent.isDirectory() && !ent.isSymbolicLink()) continue;
       const p = join(home, ent.name);
-      if (hasClaudeLayout(p) && notCodex(p)) found.push(p);
+      // Só Frinus: conta recém-instalada (MCP ligado, ainda sem projects/ nem sessions/) já aparece.
+      if ((hasClaudeLayout(p) || (frinusOnly(env) && hasFrinusMcp(p, home))) && notCodex(p)) found.push(p);
     }
   } catch {
     // $HOME ilegível (ex.: container sem home): segue com as outras fontes

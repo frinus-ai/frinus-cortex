@@ -1,0 +1,125 @@
+name: Release
+
+# Publica uma versão do Frinus Office pronta para o cliente (nada é compilado na máquina dele).
+# Disparo: push de tag vX.Y.Z (a versão do package.json precisa bater com a tag).
+#
+# Assets da release:
+#   frinus-office-<linux|darwin>-<x64|arm64>.tar.gz  versão compilada + node_modules de produção (node-pty nativo)
+#   SHA256SUMS                                       conferido pelo install.sh antes de instalar
+#   install.sh                                       = frinus/get.sh (curl ... | bash)
+#   Instalar-Frinus-Office.cmd                       Windows (WSL) — chama o setup.ps1 do frinus-mcp em modo office
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag já existente para (re)publicar, ex.: v0.1.0'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  pacote:
+    name: pacote ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { target: linux-x64,    runner: ubuntu-22.04 }
+          - { target: linux-arm64,  runner: ubuntu-22.04-arm }
+          - { target: darwin-arm64, runner: macos-14 }
+          - { target: darwin-x64,   runner: macos-15-intel }
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Versão do package.json = tag
+        run: |
+          v="v$(node -p 'require("./package.json").version')"
+          [ "$v" = "$TAG" ] || { echo "package.json diz $v, tag é $TAG"; exit 1; }
+
+      - name: Build
+        env:
+          HABBLAUD_BUILD_COMMIT: ${{ github.sha }}
+          HABBLAUD_BUILD_DIRTY: '0'
+        run: |
+          npm ci
+          npm run build
+
+      - name: Só dependências de produção
+        run: |
+          npm prune --omit=dev
+          node -e "require('node-pty'); console.log('node-pty ok')"
+          npx --no-install tsx --version
+
+      - name: Smoke test (servidor sobe e responde)
+        run: |
+          data="$(mktemp -d)"
+          HABBLAUD_HOST=127.0.0.1 HABBLAUD_PORT=4799 HABBLAUD_DATA_DIR="$data" HABBLAUD_UPDATE_CHECK=0 HABBLAUD_WORLD=0 \
+            node dist/server/index.js > "$data/log" 2>&1 &
+          pid=$!
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4799/api/health && ok=1 && break; sleep 1; done
+          kill "$pid" || true
+          [ "${ok:-}" = 1 ] || { cat "$data/log"; exit 1; }
+
+      - name: Empacotar
+        run: |
+          echo "$TAG" > .release
+          stage="$RUNNER_TEMP/stage"
+          mkdir -p "$stage"
+          # Fontes de server/, shared/ e scripts/ vão junto: o mod:install roda com tsx a partir delas.
+          tar --exclude='*.test.ts' --exclude='*.map' -cf - \
+            .release LICENSE README.md README.pt-BR.md package.json package-lock.json tsconfig.json \
+            .claude-plugin mod frinus dist server shared scripts node_modules | tar -xf - -C "$stage"
+          tar -czf "frinus-office-${{ matrix.target }}.tar.gz" -C "$stage" .
+          ls -lh "frinus-office-${{ matrix.target }}.tar.gz"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frinus-office-${{ matrix.target }}
+          path: frinus-office-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+
+  publicar:
+    needs: pacote
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+
+      - name: Montar assets
+        run: |
+          cp frinus/get.sh out/install.sh
+          cp frinus/windows/Instalar-Frinus-Office.cmd out/Instalar-Frinus-Office.cmd
+          (cd out && sha256sum frinus-office-*.tar.gz install.sh Instalar-Frinus-Office.cmd > SHA256SUMS && cat SHA256SUMS)
+
+      - name: Publicar release
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" out/* --clobber
+          else
+            gh release create "$TAG" out/* --title "Frinus Office $TAG" --generate-notes --latest
+          fi

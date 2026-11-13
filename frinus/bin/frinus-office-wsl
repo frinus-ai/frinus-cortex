@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# frinus-office-wsl — mantém o Frinus Office no ar dentro do WSL, chamado pelo Windows.
+#
+# O WSL desliga o Ubuntu quando nenhum programa do Windows o está usando (mesmo com systemd), então um serviço
+# "de fundo" não basta. O atalho "Frinus Office" e a entrada de Inicializar do Windows (criados pelo setup.ps1)
+# rodam, escondido:  wsl.exe -d Ubuntu -- bash -lc '<app>/frinus/bin/frinus-office-wsl'
+# Esse wsl.exe fica vivo enquanto o escritório roda, e é ele que mantém o Ubuntu ligado.
+#
+# Se o escritório já está no ar (outra janela/atalho), sai na hora — não sobe dois.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+root="$(cd "$here/../.." && pwd)"
+port="$(sed -n 's/^HABBLAUD_PORT=\([0-9]\{1,5\}\).*/\1/p' "$root/frinus/office.env" | head -1)"
+port="${port:-4748}"
+
+if curl -fsS -o /dev/null --max-time 2 "http://127.0.0.1:${port}/api/health" 2>/dev/null; then
+  exit 0
+fi
+
+log="${HABBLAUD_DATA_DIR:-$HOME/.frinus-office}/office.log"
+mkdir -p "$(dirname "$log")"
+exec "$here/frinus-office" >>"$log" 2>&1
