@@ -136,7 +136,7 @@ if [ -z "$MCP_INSTALL" ]; then
     [ -n "$cand" ] && [ -f "$cand" ] && { MCP_INSTALL="$cand"; break; }
   done
 fi
-MCP_URL="https://raw.githubusercontent.com/frinus-ai/frinus-mcp/client-installer-v10/install/install.sh"
+MCP_URL="https://raw.githubusercontent.com/frinus-ai/frinus-mcp/client-installer-v13/install/install.sh"
 
 # --- 1) + 2) pré-requisitos + cadastro de UMA conta ----------------------------------------------------------
 say "Cadastro da conta Frinus (as demais entram depois pela interface)"

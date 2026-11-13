@@ -197,6 +197,20 @@ describe('perfil Frinus (FRINUS_ONLY)', () => {
     expect(dirs).not.toContain(join(home, '.claude-nada'));
   });
 
+  it('conta padrão recém-instalada: MCP em ~/.claude/.claude.json e ~/.claude.json sem mcpServers', () => {
+    const fresh = tempDir();
+    try {
+      const h = fresh.dir;
+      mkdirSync(join(h, '.claude'), { recursive: true }); // sem projects/ nem sessions/
+      writeFileSync(join(h, '.claude.json'), JSON.stringify({ userID: 'x' }));
+      writeFileSync(join(h, '.claude', '.claude.json'), JSON.stringify({ mcpServers: { 'frinus-mcp': { command: 'npx', args: ['-y', 'frinus-mcp@latest'] } } }));
+      expect(hasFrinusMcp(join(h, '.claude'), h)).toBe(true);
+      expect(discoverClaudeDirs({ FRINUS_ONLY: '1' }, h)).toEqual([join(h, '.claude')]);
+    } finally {
+      fresh.cleanup();
+    }
+  });
+
   it('FRINUS_ONLY também filtra HABBLAUD_CLAUDE_DIRS', () => {
     const env = { FRINUS_ONLY: 'sim', HABBLAUD_CLAUDE_DIRS: `${join(home, '.claude-rdx')},${join(home, '.claude-nada')}` };
     expect(discoverClaudeDirs(env, home)).toEqual([join(home, '.claude-rdx')]);

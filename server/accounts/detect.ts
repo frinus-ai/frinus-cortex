@@ -292,17 +292,23 @@ export function shortcutsByDir(aliases: ClaudeAlias[], home: string, defaultDir:
  * $HOME/.claude.json e depois <dir>/.claude.json). undefined se não existir ou for ilegível. Nunca loga nada.
  */
 function readClaudeJson(dir: string, home: string): Record<string, unknown> | undefined {
+  return readClaudeJsons(dir, home)[0];
+}
+
+/** Todos os .claude.json legíveis da conta, na ordem de readClaudeJson. */
+function readClaudeJsons(dir: string, home: string): Record<string, unknown>[] {
   const candidates = isDefaultDir(dir, home) ? [join(home, '.claude.json'), join(dir, '.claude.json')] : [join(dir, '.claude.json')];
+  const out: Record<string, unknown>[] = [];
   for (const file of candidates) {
     if (!existsSync(file)) continue;
     try {
       const j = JSON.parse(readFileSync(file, 'utf8')) as unknown;
-      if (j && typeof j === 'object' && !Array.isArray(j)) return j as Record<string, unknown>;
+      if (j && typeof j === 'object' && !Array.isArray(j)) out.push(j as Record<string, unknown>);
     } catch {
       // JSON inválido (sendo gravado?): tenta o próximo candidato
     }
   }
-  return undefined;
+  return out;
 }
 
 /**
@@ -323,9 +329,13 @@ export function isFrinusMcpServer(name: string, def: unknown): boolean {
 
 /** A conta (config dir) tem o MCP do Frinus configurado no .claude.json (mcpServers)? */
 export function hasFrinusMcp(dir: string, home: string): boolean {
-  const servers = readClaudeJson(dir, home)?.mcpServers;
-  if (!servers || typeof servers !== 'object') return false;
-  return Object.entries(servers as Record<string, unknown>).some(([name, def]) => isFrinusMcpServer(name, def));
+  // Conta padrão (~/.claude): o instalador liga o MCP com CLAUDE_CONFIG_DIR=~/.claude, então ele vai para
+  // ~/.claude/.claude.json, enquanto ~/.claude.json pode existir sem mcpServers. Vale se QUALQUER um tiver.
+  return readClaudeJsons(dir, home).some((j) => {
+    const servers = j.mcpServers;
+    if (!servers || typeof servers !== 'object') return false;
+    return Object.entries(servers as Record<string, unknown>).some(([name, def]) => isFrinusMcpServer(name, def));
+  });
 }
 
 /**
