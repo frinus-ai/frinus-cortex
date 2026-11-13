@@ -3335,4 +3335,20 @@ export const EN: Readonly<Record<string, string>> = {
   "limite de consultas do Frinus atingido hoje — tente mais tarde": "Frinus daily query limit reached — try again later",
   "recurso não encontrado na memória do Frinus": "resource not found in the Frinus memory",
   "a memória do Frinus respondeu com erro": "the Frinus memory replied with an error",
+
+  // Nova conversa: seletor de pasta nativo (client/src/ui/newchat.ts, server/http/frinus.ts)
+  "Abrir o seletor de pastas do sistema": "Open the system folder picker",
+  "Escolher…": "Choose…",
+  "Escolha a pasta na janela do sistema…": "Pick the folder in the system window…",
+  "Seletor de pastas indisponível aqui: digite o caminho.": "Folder picker unavailable here: type the path.",
+  "seletor de pasta indisponível neste computador": "folder picker unavailable on this computer",
+
+  // client/src/ui/attach.ts, server/uploads/store.ts, server/http/app.ts (anexos arrastar/colar)
+  "Solte para anexar (vira o caminho no prompt)": "Drop to attach (becomes the path in the prompt)",
+  "Não consegui pegar o arquivo da área de transferência (recent://). Arraste o arquivo para cá, ou copie-o pela pasta real no gerenciador de arquivos.": "Couldn't read the file from the clipboard (recent://). Drag the file here, or copy it from its real folder in the file manager.",
+  "Não consegui anexar: {0}": "Couldn't attach: {0}",
+  "{0} passa de {1} MB": "{0} is over {1} MB",
+  "upload de anexos desligado: só funciona pelo próprio computador (http://localhost)": "attachment upload is off: it only works from this computer (http://localhost)",
+  "anexos só são enviados pelo próprio computador (http://localhost ou http://127.0.0.1)": "attachments are only sent from this computer (http://localhost or http://127.0.0.1)",
+  "não foi possível gravar o anexo": "couldn't save the attachment",
 };

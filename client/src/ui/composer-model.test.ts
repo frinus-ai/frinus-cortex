@@ -47,8 +47,19 @@ describe('caixa de mensagem (peças puras)', () => {
   it('composerMode: pronta só para principal presente com o plugin, recurso ligado e página local', () => {
     expect(composerMode(agent(), ON)).toEqual({ kind: 'ready' });
     for (const status of ['working', 'waiting', 'shell'] as const) expect(composerMode(agent({ status }), ON).kind).toBe('ready');
-    // Recurso ligado, mas a sessão sem o plugin: a dica de instalação.
-    expect(composerMode(agent({ canMessage: undefined }), ON)).toEqual({ kind: 'hint', text: PLUGIN_HINT });
+  });
+
+  it('composerMode (Claude sem o plugin): entrega pela stdin do pty, ou "Assumir aqui", nunca instrução de npm', () => {
+    const noPlugin = agent({ canMessage: undefined });
+    // Sessão rodando no terminal do escritório: a caixa manda (stdin do pty).
+    expect(composerMode(noPlugin, { ...ON, interactiveHere: true })).toEqual({ kind: 'ready' });
+    // Sessão em outro terminal, mas o terminal interativo está ligado: oferece assumir em 1 clique.
+    expect(composerMode(noPlugin, { ...ON, canInteractive: true })).toEqual({ kind: 'takeover' });
+    // Nem aqui nem assumível: motivo amigável, SEM mandar rodar npm.
+    const m = composerMode(noPlugin, ON);
+    expect(m.kind).toBe('off');
+    expect(m.kind === 'off' ? m.text : '').not.toMatch(/npm|mod:install/);
+    // A constante antiga continua exportada, mas não aparece mais para o Claude.
     expect(PLUGIN_HINT).toBe('Para mandar mensagens daqui: npm run mod:install (plugin habblaud-mensagens)');
   });
 

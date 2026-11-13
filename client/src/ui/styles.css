@@ -11604,3 +11604,131 @@ html.is-replay #world {
 .ui-newchat__add-body {
   margin-top: 10px;
 }
+
+/* Nova conversa: contas em cartões (rádio) no lugar do <select> nativo, e pasta com seletor do SO. */
+.ui-newchat__accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 232px;
+  overflow-y: auto;
+}
+.ui-newchat__accounts[hidden] {
+  display: none;
+}
+.ui-newchat__account {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  background: var(--ui-bg-soft);
+  border: 1px solid var(--ui-line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ui-text);
+  font: 13px/1.25 var(--font-ui);
+  cursor: pointer;
+}
+.ui-newchat__account:hover {
+  border-color: color-mix(in srgb, var(--st-working) 45%, var(--ui-line-strong));
+}
+.ui-newchat__account.is-selected {
+  background: color-mix(in srgb, var(--st-working) 14%, var(--ui-bg-soft));
+  border-color: color-mix(in srgb, var(--st-working) 70%, transparent);
+}
+.ui-newchat__account:focus-visible {
+  outline: 2px solid #6C3FC4;
+  outline-offset: 1px;
+}
+.ui-newchat__account-dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--ui-line-strong);
+  box-sizing: border-box;
+}
+.ui-newchat__account.is-selected .ui-newchat__account-dot {
+  border-color: var(--st-working);
+  background: radial-gradient(circle, var(--st-working) 0 3px, transparent 3.5px);
+}
+.ui-newchat__account-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ui-newchat__account-name {
+  font-weight: 600;
+}
+.ui-newchat__account-sub {
+  font-size: 12px;
+  color: var(--ui-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ui-newchat__folder {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+.ui-newchat__field .ui-newchat__folder-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+}
+.ui-newchat__folder-pick {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.ui-newchat__folder-icon {
+  display: inline-flex;
+}
+.ui-newchat__start {
+  justify-content: center;
+  padding: 8px 16px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--st-working) 22%, transparent);
+}
+.ui-newchat__start:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--st-working) 32%, transparent);
+}
+
+/* Arrastar e colar arquivos: realce na caixa de mensagem e camada "solte aqui" no terminal interativo. */
+.ui-msg__input.is-drop {
+  outline: 2px dashed color-mix(in srgb, var(--st-working) 70%, transparent);
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--st-working) 10%, transparent);
+}
+.ui-pty__screen {
+  position: relative;
+}
+.ui-pty__drop {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  text-align: center;
+  font: 13px/1.4 var(--font-ui);
+  color: var(--ui-text);
+  background: color-mix(in srgb, #0a0c12 78%, transparent);
+  border: 2px dashed color-mix(in srgb, var(--st-working) 70%, transparent);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+.ui-pty__drop[hidden] {
+  display: none;
+}
+.ui-pty__drop.is-error {
+  border-color: color-mix(in srgb, var(--st-alert, #f06fa0) 70%, transparent);
+  color: color-mix(in srgb, var(--st-alert, #f06fa0) 30%, var(--ui-text));
+}

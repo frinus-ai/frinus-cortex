@@ -17,6 +17,7 @@ import type { TerminalStreams } from './terminal';
 import { tr } from '../../shared/i18n';
 import type { SpawnService } from '../spawn/spawn';
 import { ATTACHMENT_BODY_MAX, parseAttachment, type AttachmentStore } from '../spawn/attachments';
+import { parseUpload, UPLOAD_BODY_MAX, type Upload } from '../uploads/store';
 import type { SpawnFolder } from '../spawn/folders';
 import { AUDIO_BODY_MAX, type DictationService } from '../dictation/dictation';
 import type { DeliveryIndex } from '../deliveries/deliveries';
@@ -71,6 +72,12 @@ export interface ApiDeps {
   attachments?: AttachmentStore;
   /** Ditado (/api/dictation e, para o auxiliar do host, /api/host/dictation/*; dictation/dictation.ts). */
   dictation?: DictationService;
+  /**
+   * Upload de arquivos arrastados/colados no terminal e na caixa de mensagem (POST /api/uploads; uploads/store.ts).
+   * Grava os bytes em ~/Frinus/anexos e devolve o caminho absoluto, que a página insere no prompt. Só pelo próprio
+   * computador (grava arquivos na máquina): nunca pela porta remota. Ausente = recurso desligado.
+   */
+  uploads?: { save(file: Upload): string };
   /** Entregas (GET /api/deliveries e os anexos em /api/deliveries/file/:id; deliveries/deliveries.ts). */
   deliveries?: DeliveryIndex;
   /** Quem lê os arquivos das entregas (e, para o auxiliar do host, /api/host/files/*; deliveries/fetcher.ts). */
@@ -132,6 +139,8 @@ function isLocalOnlyPath(path: string): boolean {
     path === '/api/mod/inbox/ack' ||
     path.startsWith('/api/codex/') ||
     path.startsWith('/api/host/') ||
+    // Upload de anexos: grava arquivos no computador, então só pelo próprio computador (nunca pelo celular).
+    path === '/api/uploads' ||
     // Busca de memória do Frinus: usa a chave da conta, então só vale pelo próprio computador (nunca pelo celular).
     path === '/api/frinus' ||
     path.startsWith('/api/frinus/')
@@ -559,6 +568,29 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
         if (info) sendJson(res, 200, info);
         else sendJson(res, 404, { error: tr('ditado desconhecido') });
       } else methodNotAllowed(res, path === '/api/dictation' ? 'GET, POST' : 'GET');
+      return true;
+    }
+    if (path === '/api/uploads') {
+      // Arquivos arrastados/colados no terminal e na caixa: grava os bytes no computador e devolve o caminho. Grava
+      // arquivos na máquina, então só pelo próprio computador (loopback, nunca a porta remota, nem com login).
+      const uploads = deps.uploads;
+      if (method !== 'POST') methodNotAllowed(res, 'POST');
+      else if (!uploads) sendJson(res, 403, { error: tr('upload de anexos desligado: só funciona pelo próprio computador (http://localhost)') });
+      else if (!trusted(req)) sendJson(res, 403, { error: denied(req, tr('anexos só são enviados pelo próprio computador (http://localhost ou http://127.0.0.1)')) });
+      else
+        readJson(req, UPLOAD_BODY_MAX)
+          .then((body) => {
+            const f = parseUpload(body);
+            if ('error' in f) return sendJson(res, 400, { error: f.error });
+            let abs: string;
+            try {
+              abs = uploads.save(f);
+            } catch {
+              return sendJson(res, 500, { error: tr('não foi possível gravar o anexo') });
+            }
+            sendJson(res, 201, { path: abs, name: f.name, size: f.data.length });
+          })
+          .catch((err) => fail(res, err));
       return true;
     }
     if (path === '/api/deliveries' || path.startsWith('/api/deliveries/')) {

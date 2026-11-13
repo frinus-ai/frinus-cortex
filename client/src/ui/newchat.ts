@@ -13,22 +13,31 @@ import { h, iconButton, setHidden, setText } from './dom';
 import { ICONS } from './icons';
 
 const FOLDER_KEY = 'frinus.newchat.folder';
+const ACCOUNT_KEY = 'frinus.newchat.account';
+const FOLDER_ICON =
+  '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 
 /** Contas que dá para usar numa conversa Frinus: as do Claude Code (não Codex, não demo). Com FRINUS_ONLY, já são as com Frinus. */
 function frinusAccounts(snap: { accounts?: AccountInfo[] } | null | undefined): AccountInfo[] {
   return (snap?.accounts ?? []).filter((a) => (a.provider ?? 'claude') === 'claude' && !isDemoId(a.id));
 }
 
-function readFolderPref(): string {
+function folderIcon(): HTMLElement {
+  const el = h('span', { class: 'ui-newchat__folder-icon', attrs: { 'aria-hidden': 'true' } });
+  el.innerHTML = FOLDER_ICON;
+  return el;
+}
+
+function readPref(key: string): string {
   try {
-    return localStorage.getItem(FOLDER_KEY) ?? '';
+    return localStorage.getItem(key) ?? '';
   } catch {
     return '';
   }
 }
-function writeFolderPref(path: string): void {
+function writePref(key: string, value: string): void {
   try {
-    localStorage.setItem(FOLDER_KEY, path);
+    localStorage.setItem(key, value);
   } catch {
     // sem armazenamento: só não lembra
   }
@@ -40,10 +49,15 @@ export class NewChatPanel implements UiComponent {
   private busy = false;
   /** Conta a selecionar quando aparecer no snapshot (recém-criada). */
   private pendingAccount: string | null = null;
+  private accountSig = '';
 
-  private readonly accountSelect: HTMLSelectElement;
+  /** Lista de contas em cartões (rádio), no lugar do <select> nativo. */
+  private readonly accountList: HTMLElement;
+  private accountValue = '';
   private readonly accountEmpty: HTMLElement;
   private readonly folderInput: HTMLInputElement;
+  private readonly folderPick: HTMLButtonElement;
+  private picking = false;
   private readonly startBtn: HTMLButtonElement;
   private readonly startMsg: HTMLElement;
   private readonly disabledMsg: HTMLElement;
@@ -58,23 +72,35 @@ export class NewChatPanel implements UiComponent {
   constructor(private ctx: UiContext) {
     const close = iconButton(ICONS.close, tr('Fechar'), () => this.el.close(), 'ui-icon-btn--sm');
 
-    this.accountSelect = h('select', { class: 'ui-mem-account', attrs: { 'aria-label': tr('Conta do Frinus') } }) as HTMLSelectElement;
+    this.accountList = h('div', { class: 'ui-newchat__accounts', attrs: { role: 'radiogroup', 'aria-label': tr('Conta do Frinus') } });
     this.accountEmpty = h('p', { class: 'ui-mem-status', text: tr('Nenhuma conta Frinus ainda. Adicione uma abaixo.'), hidden: true });
+    // O caminho fica visível e editável, mas o jeito principal é o botão, que abre o seletor de pasta do SO.
     this.folderInput = h('input', {
-      class: 'ui-mem-input',
+      class: 'ui-mem-input ui-newchat__folder-input',
       type: 'text',
       attrs: { placeholder: '~/Frinus', 'aria-label': tr('Pasta do projeto'), spellcheck: 'false', autocapitalize: 'off' },
     }) as HTMLInputElement;
-    this.startBtn = h('button', { class: 'ui-btn--accent ui-newchat__start', type: 'button', text: tr('Começar conversa'), on: { click: () => void this.start() } }) as HTMLButtonElement;
+    this.folderPick = h(
+      'button',
+      { class: 'ui-btn ui-newchat__folder-pick', type: 'button', attrs: { title: tr('Abrir o seletor de pastas do sistema') }, on: { click: () => void this.pickFolder() } },
+      folderIcon(),
+      h('span', { text: tr('Escolher…') }),
+    ) as HTMLButtonElement;
+    this.startBtn = h('button', { class: 'ui-btn ui-btn--accent ui-newchat__start', type: 'button', text: tr('Começar conversa'), on: { click: () => void this.start() } }) as HTMLButtonElement;
     this.startMsg = h('p', { class: 'ui-mem-status', attrs: { role: 'status', 'aria-live': 'polite' } });
     this.disabledMsg = h('p', { class: 'ui-mem-status is-error', hidden: true });
 
     const startPane = h(
       'div',
       { class: 'ui-newchat__pane' },
-      h('label', { class: 'ui-newchat__field' }, h('span', { class: 'ui-newchat__label', text: tr('Conta') }), this.accountSelect),
+      h('div', { class: 'ui-newchat__field' }, h('span', { class: 'ui-newchat__label', text: tr('Conta') }), this.accountList),
       this.accountEmpty,
-      h('label', { class: 'ui-newchat__field' }, h('span', { class: 'ui-newchat__label', text: tr('Pasta') }), this.folderInput),
+      h(
+        'div',
+        { class: 'ui-newchat__field' },
+        h('span', { class: 'ui-newchat__label', text: tr('Pasta') }),
+        h('div', { class: 'ui-newchat__folder' }, this.folderInput, this.folderPick),
+      ),
       h('div', { class: 'ui-newchat__actions' }, this.startBtn),
       this.startMsg,
       this.disabledMsg,
@@ -143,7 +169,7 @@ export class NewChatPanel implements UiComponent {
     if (!this.el.open) this.el.showModal();
     this.populate(true);
     this.render();
-    requestAnimationFrame(() => (frinusAccounts(this.ctx.store.snapshot).length ? this.folderInput : this.aliasInput).focus());
+    requestAnimationFrame(() => (frinusAccounts(this.ctx.store.snapshot).length ? this.startBtn : this.aliasInput).focus());
   }
 
   private toggleAdd(body: HTMLElement): void {
@@ -153,23 +179,45 @@ export class NewChatPanel implements UiComponent {
     if (open) requestAnimationFrame(() => this.aliasInput.focus());
   }
 
-  /** (Re)preenche o seletor de contas a partir do snapshot, preservando a escolha atual (ou a conta recém-criada). */
+  /** (Re)preenche a lista de contas a partir do snapshot, preservando a escolha atual (ou a conta recém-criada). */
   private populate(reset = false): void {
     const accts = frinusAccounts(this.ctx.store.snapshot);
-    const want = this.pendingAccount ?? (reset ? '' : this.accountSelect.value);
-    this.accountSelect.textContent = '';
-    for (const a of accts) {
-      const label = a.organization ? `${a.name} · ${a.organization}` : a.email ? `${a.name} · ${a.email}` : a.name;
-      this.accountSelect.append(h('option', { attrs: { value: a.id }, text: label }));
-    }
+    let want = this.pendingAccount ?? (reset ? readPref(ACCOUNT_KEY) : this.accountValue);
     if (want && accts.some((a) => a.id === want)) {
-      this.accountSelect.value = want;
       if (this.pendingAccount === want) this.pendingAccount = null;
+    } else want = accts[0]?.id ?? '';
+    this.accountValue = want;
+    // Só reconstrói quando a lista ou a escolha mudam (render() roda a cada snapshot; preserva o foco).
+    const sig = accts.map((a) => `${a.id}|${a.name}|${a.organization ?? ''}|${a.email ?? ''}`).join('\n') + `#${want}`;
+    if (sig !== this.accountSig) {
+      this.accountSig = sig;
+      const focused = this.accountList.contains(document.activeElement);
+      this.accountList.textContent = '';
+      for (const a of accts) {
+        const sub = a.organization || a.email || '';
+        const on = a.id === want;
+        const card = h(
+          'button',
+          {
+            class: `ui-newchat__account${on ? ' is-selected' : ''}`,
+            type: 'button',
+            attrs: { role: 'radio', 'aria-checked': String(on), tabindex: on ? '0' : '-1', 'data-id': a.id },
+            on: {
+              click: () => this.selectAccount(a.id, true),
+              keydown: (e: Event) => this.onAccountKey(e as KeyboardEvent, accts.map((x) => x.id)),
+            },
+          },
+          h('span', { class: 'ui-newchat__account-dot', attrs: { 'aria-hidden': 'true' } }),
+          h('span', { class: 'ui-newchat__account-text' }, h('span', { class: 'ui-newchat__account-name', text: a.name }), sub ? h('span', { class: 'ui-newchat__account-sub', text: sub }) : null),
+        );
+        this.accountList.append(card);
+      }
+      if (focused) (this.accountList.querySelector('[aria-checked="true"]') as HTMLElement | null)?.focus();
     }
     setHidden(this.accountEmpty, accts.length > 0);
     if (reset && !this.folderInput.value) {
       const home = this.ctx.store.snapshot?.meta.home;
-      this.folderInput.value = readFolderPref() || (home ? `${home.replace(/\/+$/, '')}/Frinus` : '');
+      this.folderInput.value = readPref(FOLDER_KEY) || (home ? `${home.replace(/\/+$/, '')}/Frinus` : '');
     }
   }
 
@@ -179,14 +227,15 @@ export class NewChatPanel implements UiComponent {
     const enabled = !!this.ctx.terminals?.interactiveEnabled;
     const hasAccount = frinusAccounts(this.ctx.store.snapshot).length > 0;
     this.startBtn.disabled = this.busy || !enabled || !hasAccount;
-    this.accountSelect.disabled = !hasAccount;
+    setHidden(this.accountList, !hasAccount);
+    this.folderPick.disabled = this.picking || this.busy;
     setText(this.disabledMsg, enabled ? '' : tr('O terminal interativo está desligado neste escritório.'));
     setHidden(this.disabledMsg, enabled);
   }
 
   private async start(): Promise<void> {
     if (this.busy) return;
-    const account = this.accountSelect.value;
+    const account = this.accountValue;
     const folder = this.folderInput.value.trim();
     if (!account) return this.say(this.startMsg, tr('Escolha uma conta.'), true);
     if (!folder) return this.say(this.startMsg, tr('Informe a pasta (caminho absoluto, ex.: /home/voce/Frinus).'), true);
@@ -195,7 +244,8 @@ export class NewChatPanel implements UiComponent {
     this.say(this.startMsg, tr('Abrindo…'), false);
     try {
       await this.ctx.terminals?.newSession(folder, account);
-      writeFolderPref(folder);
+      writePref(FOLDER_KEY, folder);
+      writePref(ACCOUNT_KEY, account);
       this.el.close();
     } catch (err) {
       this.say(this.startMsg, tr('Não deu: {0}', [(err as Error).message]), true);
@@ -239,6 +289,56 @@ export class NewChatPanel implements UiComponent {
     this.ctx.invalidate();
     this.populate();
     this.render();
+  }
+
+  private selectAccount(id: string, focus: boolean): void {
+    this.accountValue = id;
+    this.populate();
+    if (focus) (this.accountList.querySelector(`[data-id="${CSS.escape(id)}"]`) as HTMLElement | null)?.focus();
+  }
+
+  /** Setas/Home/End movem a escolha, como num grupo de rádio. */
+  private onAccountKey(e: KeyboardEvent, ids: string[]): void {
+    const i = ids.indexOf(this.accountValue);
+    let next = -1;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') next = (i + 1) % ids.length;
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') next = (i - 1 + ids.length) % ids.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = ids.length - 1;
+    if (next < 0) return;
+    e.preventDefault();
+    this.selectAccount(ids[next], true);
+  }
+
+  /** Abre o seletor de pastas do SO pelo servidor local (o navegador não dá o caminho absoluto). */
+  private async pickFolder(): Promise<void> {
+    if (this.picking) return;
+    this.picking = true;
+    this.render();
+    this.say(this.startMsg, tr('Escolha a pasta na janela do sistema…'), false);
+    try {
+      const res = await fetch('/api/frinus/pick-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start: this.folderInput.value.trim() || undefined }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { path?: string; cancelled?: boolean; error?: string };
+      if (res.ok && body.path) {
+        this.folderInput.value = body.path;
+        this.say(this.startMsg, '', false);
+        this.startBtn.focus();
+      } else if (res.ok && body.cancelled) {
+        this.say(this.startMsg, '', false);
+      } else {
+        this.say(this.startMsg, tr('Seletor de pastas indisponível aqui: digite o caminho.'), true);
+        this.folderInput.focus();
+      }
+    } catch {
+      this.say(this.startMsg, tr('O Frinus Office não respondeu.'), true);
+    } finally {
+      this.picking = false;
+      this.render();
+    }
   }
 
   private say(el: HTMLElement, text: string, error: boolean): void {

@@ -9,12 +9,14 @@
 //   POST /api/frinus/memory/search {account, query, limit?, universe_id?}  -> proxy POST /memories/search
 //   GET  /api/frinus/tasks?account=&status=   -> proxy GET /tasks
 //   GET  /api/frinus/health?account=          -> proxy GET /training/stats (prova que a chave funciona)
+//   POST /api/frinus/pick-folder {start?}     -> abre o seletor de pasta NATIVO do SO e devolve o caminho escolhido
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tr } from '../../shared/i18n';
 import { HttpError, readJson, sendJson } from './app';
 import { ProvisionError, provisionFrinusAccount } from '../accounts/provision';
+import { pickFolder } from './folder-picker';
 
 /** URL da Memory Engine em produção (sobrescreva com FRINUS_OFFICE_MEMORY_URL para apontar outra instância). */
 const MEMORY_URL = (process.env.FRINUS_OFFICE_MEMORY_URL || 'https://frinus-memory.rdxsec.com.br').replace(/\/+$/, '');
@@ -217,6 +219,15 @@ async function handleCreateAccount(req: IncomingMessage, res: ServerResponse, de
   sendJson(res, 201, { ok: true, id: result.id, name: result.alias, organization: result.organization ?? null, verified: result.verified ?? null });
 }
 
+/** Abre o seletor de pasta nativo do SO (o servidor roda na sessão gráfica do usuário) e devolve o caminho. */
+async function handlePickFolder(req: IncomingMessage, res: ServerResponse, deps: FrinusRouteDeps): Promise<void> {
+  const body = (await readJson(req)) as { start?: unknown } | null;
+  const start = typeof body?.start === 'string' && body.start.length < 4096 ? body.start : undefined;
+  const r = await pickFolder(start, deps.home);
+  if (r.kind === 'unavailable') return sendJson(res, 501, { error: tr('seletor de pasta indisponível neste computador') });
+  sendJson(res, 200, r.kind === 'picked' ? { path: r.path } : { cancelled: true });
+}
+
 /**
  * Cria o manipulador das rotas /api/frinus (registrado no app.ts). Devolve `false` para caminhos que não
  * são dele (o roteador segue tentando); devolve `true` quando tratou a requisição.
@@ -268,6 +279,13 @@ export function createFrinusRoutes(deps: FrinusRouteDeps): (req: IncomingMessage
         res.setHeader('Allow', 'GET');
         sendJson(res, 405, { error: tr('método não permitido') });
       } else handleHealth(req, res, url, deps).catch((err) => fail(res, err));
+      return true;
+    }
+    if (path === '/api/frinus/pick-folder') {
+      if (method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        sendJson(res, 405, { error: tr('método não permitido') });
+      } else handlePickFolder(req, res, deps).catch((err) => fail(res, err));
       return true;
     }
     sendJson(res, 404, { error: tr('rota desconhecida') });

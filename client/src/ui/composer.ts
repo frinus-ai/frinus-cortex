@@ -24,6 +24,8 @@ import {
   type SendState,
 } from './composer-model';
 import type { UiContext } from './context';
+import { formatPathForInsert, hasAttachment, resolveAttachment } from './attach';
+import { postPty, ptyControllable } from './ptyapi';
 import { DictationButton, dictationAvailable, insertDictation } from './dictation';
 import { h, setAttr, setHidden, setText, setTitle } from './dom';
 import { access } from '../net/access';
@@ -55,6 +57,8 @@ export class MessageComposer {
   private row: HTMLElement;
   private box: HTMLTextAreaElement;
   private sendBtn: HTMLButtonElement;
+  /** "Assumir aqui": sessão rodando noutro terminal — traz para o escritório e a caixa passa a mandar. */
+  private takeoverBtn: HTMLButtonElement;
   private hint: HTMLElement;
   private tip: HTMLElement | null;
   private status: HTMLElement;
@@ -83,6 +87,11 @@ export class MessageComposer {
     });
     this.box.addEventListener('focus', () => this.resize());
     this.box.addEventListener('keydown', (e) => this.onKey(e));
+    // Arrastar e colar arquivos/imagens: vira o caminho absoluto no prompt (texto puro continua colando normal).
+    this.box.addEventListener('paste', (e) => this.onPaste(e));
+    this.box.addEventListener('dragover', (e) => this.onDragOver(e));
+    this.box.addEventListener('dragleave', () => this.box.classList.remove('is-drop'));
+    this.box.addEventListener('drop', (e) => this.onDrop(e));
     this.sendBtn = h(
       'button',
       {
@@ -102,9 +111,20 @@ export class MessageComposer {
     );
     this.dictate.el.classList.add('ui-msg__mic');
     setHidden(this.dictate.el, true);
+    this.takeoverBtn = h(
+      'button',
+      {
+        class: term ? 'ui-msg__send ui-msg__takeover' : 'ui-btn ui-msg__send ui-msg__takeover',
+        type: 'button',
+        title: tr('Trazer esta sessão para o escritório e mandar mensagens daqui'),
+        on: { click: () => void this.ctx.terminals?.open(this.agentId) },
+      },
+      tr('Assumir aqui'),
+    );
+    setHidden(this.takeoverBtn, true);
     this.row = h('div', { class: `ui-msg__row${term ? ' ui-term__prompt ui-term__prompt--mic' : ''}` });
     if (term) this.row.append(h('span', { class: 'ui-term__caret', text: '>', attrs: { 'aria-hidden': 'true' } }));
-    this.row.append(this.box, this.dictate.el, this.sendBtn);
+    this.row.append(this.box, this.dictate.el, this.sendBtn, this.takeoverBtn);
     // Clique na "linha do prompt" (fora do botão) põe o cursor na caixa, como num terminal.
     this.row.addEventListener('mousedown', (e) => {
       if (e.target === this.row && !this.box.disabled) {
@@ -124,13 +144,21 @@ export class MessageComposer {
    */
   render(agent: AgentInfo | undefined, key = agent?.id ?? ''): ComposerMode['kind'] {
     const store = this.ctx.store;
+    const snap = store.snapshot;
+    const interactiveHere = !!agent && !!snap?.ptys?.some((p) => p.agentId === agent.id && p.exitedAt === undefined);
+    const canInteractive = !!agent && !!snap?.meta.pty?.enabled && !store.replaying && ptyControllable(agent);
     const mode = composerMode(agent, {
       enabled: store.mock || !!store.snapshot?.meta.messages,
       local: store.mock || access().messages,
       replaying: store.replaying,
+      interactiveHere,
+      canInteractive,
     });
     this.mode = mode;
     const ready = mode.kind === 'ready';
+    const takeover = mode.kind === 'takeover';
+    // Texto quando a caixa não está pronta: motivo (off/hint) ou o convite a assumir (takeover).
+    const reason = mode.kind === 'off' || mode.kind === 'hint' ? mode.text : takeover ? tr('Sessão em outro terminal — "Assumir aqui" para mandar daqui') : '';
     const term = this.variant === 'terminal';
     this.provider = agent?.provider === 'codex' ? 'codex' : 'claude';
 
@@ -147,12 +175,13 @@ export class MessageComposer {
     }
     this.box.disabled = !ready;
     const name = agent?.name ?? tr('o agente');
-    const placeholder = ready ? (term ? tr('Mensagem para {0} (Enter manda, Shift+Enter quebra a linha)', [name]) : tr('Mensagem para {0}…', [name])) : mode.text;
+    const placeholder = ready ? (term ? tr('Mensagem para {0} (Enter manda, Shift+Enter quebra a linha)', [name]) : tr('Mensagem para {0}…', [name])) : reason;
     setAttr(this.box, 'placeholder', placeholder);
-    setAttr(this.box, 'aria-label', ready ? tr('Mensagem para {0}', [name]) : mode.text);
-    setTitle(this.box, ready ? '' : mode.text);
+    setAttr(this.box, 'aria-label', ready ? tr('Mensagem para {0}', [name]) : reason);
+    setTitle(this.box, ready ? '' : reason);
     this.row.classList.toggle('is-disabled', !ready);
     setHidden(this.sendBtn, !ready);
+    setHidden(this.takeoverBtn, !takeover);
     // Consulta em cache (30 s): o Mac pode instalar o Whisper ou parar o auxiliar com a página aberta.
     void dictationAvailable().then((ok) => {
       if (ok === this.canDictate) return;
@@ -161,8 +190,8 @@ export class MessageComposer {
     });
     // Transcrevendo: o botão fica até o texto chegar (ele vai para o rascunho de quem ditou).
     setHidden(this.dictate.el, !this.canDictate || (!ready && !this.dictate.busy));
-    // Na gaveta, a dica do plugin entra no lugar da caixa; no terminal ela já está no lugar do texto.
-    setHidden(this.row, !term && !ready);
+    // Na gaveta, a caixa some quando não há o que fazer; com "Assumir aqui" (takeover) a linha continua à mostra.
+    setHidden(this.row, !term && !ready && !takeover);
     if (this.tip) {
       setHidden(this.tip, !ready);
       setText(this.tip, composerTip(this.provider));
@@ -218,6 +247,50 @@ export class MessageComposer {
     }
   }
 
+  // ---------------------------------------------------------------- anexos (arrastar/colar)
+
+  private onPaste(e: ClipboardEvent): void {
+    const dt = e.clipboardData;
+    if (!dt || this.box.disabled || !hasAttachment(dt.types)) return; // texto puro: deixa colar normal
+    e.preventDefault();
+    void this.attach(dt);
+  }
+
+  private onDragOver(e: DragEvent): void {
+    if (this.box.disabled || !hasAttachment(e.dataTransfer?.types)) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    this.box.classList.add('is-drop');
+  }
+
+  private onDrop(e: DragEvent): void {
+    this.box.classList.remove('is-drop');
+    const dt = e.dataTransfer;
+    if (!dt || this.box.disabled || !hasAttachment(dt.types)) return;
+    e.preventDefault();
+    void this.attach(dt);
+  }
+
+  private async attach(dt: DataTransfer): Promise<void> {
+    const { paths, hint } = await resolveAttachment({ types: dt.types, getData: (t) => dt.getData(t), fileCount: dt.files.length }, Array.from(dt.files));
+    if (paths.length) this.insertPaths(paths);
+    if (hint) this.sayDictation(hint, true);
+  }
+
+  /** Insere os caminhos no cursor da caixa (mesma lógica do ditado). */
+  private insertPaths(paths: string[]): void {
+    const box = this.box;
+    const text = paths.map(formatPathForInsert).join(' ');
+    const { value, caret } = insertDictation(box.value, box.selectionStart ?? box.value.length, box.selectionEnd ?? box.value.length, text);
+    box.value = value.slice(0, MESSAGE_MAX);
+    this.drafts.set(this.agentId, box.value);
+    this.resize();
+    this.syncButton();
+    box.focus({ preventScroll: true });
+    const c = Math.min(caret, box.value.length);
+    box.setSelectionRange(c, c);
+  }
+
   private sayDictation(text: string, error = false): void {
     if (this.dictTimer) clearTimeout(this.dictTimer);
     setText(this.dictStatus, text);
@@ -245,12 +318,40 @@ export class MessageComposer {
     this.ctx.invalidate();
   }
 
+  /** Sessão do agente num terminal interativo deste escritório (para entregar pela stdin do pty). */
+  private localPtyId(agentId: string): string | undefined {
+    const agent = this.ctx.agent(agentId);
+    if (!agent || agent.canMessage || agent.provider === 'codex') return undefined; // com o plugin, vai pela via normal
+    return this.ctx.store.snapshot?.ptys?.find((p) => p.agentId === agentId && p.exitedAt === undefined)?.id;
+  }
+
   private async send(): Promise<void> {
     const agentId = this.agentId;
     const raw = this.box.value;
     if (this.mode.kind !== 'ready' || !canSend(raw) || this.states.get(agentId)?.phase === 'sending') return;
     this.providers.set(agentId, this.provider);
     this.setState(agentId, { phase: 'sending', at: Date.now() });
+
+    // Sem o plugin, mas com a sessão rodando aqui: entrega digitando na stdin do pty (como se você tivesse digitado).
+    const ptyId = this.localPtyId(agentId);
+    if (ptyId) {
+      try {
+        await postPty(`/api/pty/${encodeURIComponent(ptyId)}/input`, { data: `${messageText(raw)}\r` });
+      } catch {
+        this.setState(agentId, { phase: 'rejected', error: OFFLINE_ERROR, at: Date.now() });
+        return;
+      }
+      if ((this.drafts.get(agentId) ?? '') === raw) {
+        this.drafts.delete(agentId);
+        if (this.agentId === agentId && this.box.value === raw) {
+          this.box.value = '';
+          this.resize();
+        }
+      }
+      this.setState(agentId, { phase: 'delivered', at: Date.now() });
+      return;
+    }
+
     let r: { message: OutboxMessage } | { error: string };
     try {
       r = await this.ctx.store.sendMessage(agentId, messageText(raw));

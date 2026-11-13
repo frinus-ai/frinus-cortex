@@ -12,11 +12,14 @@ export const PLUGIN_HINT = tr('Para mandar mensagens daqui: npm run mod:install 
 export const CODEX_BRIDGE_HINT = tr('Para mandar mensagens ao Codex: com o Habblaud no Docker, deixe npm run codex:bridge rodando; no modo Node funciona sozinho');
 
 /**
- * - ready: dá para mandar (principal com o plugin conectado, recurso ligado, página local);
- * - hint: recurso ligado e principal presente, mas a sessão não está com o plugin (`text` diz como instalar);
+ * - ready: dá para mandar (principal com o plugin conectado, OU com a sessão rodando no terminal do escritório —
+ *   a mensagem entra pela stdin do pty), recurso ligado, página local;
+ * - takeover: recurso ligado e sessão do Claude rodando em OUTRO terminal — "Assumir aqui" (1 clique) traz a sessão
+ *   para o escritório e aí a caixa manda (nunca se mostra instrução de terminal/npm);
+ * - hint: só o Codex sem entregador (`text` diz como ligar o auxiliar);
  * - off: não dá (`text` diz por quê). A gaveta esconde a caixa; o terminal mostra o motivo no lugar dela.
  */
-export type ComposerMode = { kind: 'ready' } | { kind: 'hint'; text: string } | { kind: 'off'; text: string };
+export type ComposerMode = { kind: 'ready' } | { kind: 'takeover' } | { kind: 'hint'; text: string } | { kind: 'off'; text: string };
 
 export interface ComposerEnv {
   /** Recurso ligado no servidor (OfficeSnapshot.meta.messages; no ?mock=1, sempre). */
@@ -25,6 +28,10 @@ export interface ComposerEnv {
   local: boolean;
   /** Timelapse: o escritório mostrado é o do momento reproduzido. */
   replaying: boolean;
+  /** A sessão do agente roda num terminal interativo DESTE escritório (dá para entregar pela stdin do pty). */
+  interactiveHere?: boolean;
+  /** O terminal interativo está ligado e a sessão é assumível (Claude principal): dá para trazer a sessão para cá. */
+  canInteractive?: boolean;
 }
 
 export function composerMode(agent: AgentInfo | undefined, env: ComposerEnv): ComposerMode {
@@ -34,7 +41,15 @@ export function composerMode(agent: AgentInfo | undefined, env: ComposerEnv): Co
   const codex = agent.provider === 'codex';
   if (!env.enabled) return { kind: 'off', text: codex ? tr('Para responder, use o Codex') : tr('Para responder, use o terminal do Claude Code') };
   if (!env.local) return { kind: 'off', text: tr('Para mandar mensagens por aqui, abra o Habblaud por http://localhost (ou 127.0.0.1)') };
-  if (!agent.canMessage) return { kind: 'hint', text: codex ? CODEX_BRIDGE_HINT : PLUGIN_HINT };
+  if (!agent.canMessage) {
+    // Codex entra pela fila (`codex queue`); sem entregador, a dica é a do auxiliar.
+    if (codex) return { kind: 'hint', text: CODEX_BRIDGE_HINT };
+    // Claude sem o plugin: a caixa ainda funciona. Se a sessão roda aqui, entrega pela stdin do pty; se roda em
+    // outro terminal, oferece assumir em 1 clique. Nunca mostramos "rode npm run mod:install".
+    if (env.interactiveHere) return { kind: 'ready' };
+    if (env.canInteractive) return { kind: 'takeover' };
+    return { kind: 'off', text: tr('Abra esta sessão no terminal do escritório (botão do terminal) para mandar mensagens daqui.') };
+  }
   return { kind: 'ready' };
 }
 

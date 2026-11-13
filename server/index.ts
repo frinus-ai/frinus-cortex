@@ -46,6 +46,7 @@ import type { WorldLocale } from '../shared/world/protocol';
 import { createCliRunner, createOpener, SpawnService } from './spawn/spawn';
 import { runnableClaudeBin } from './claude-bin';
 import { AttachmentStore } from './spawn/attachments';
+import { saveUpload, uploadsRoot } from './uploads/store';
 import { recentFolders } from './spawn/folders';
 import { isDemoId } from '../shared/timeline';
 import { DictationService } from './dictation/dictation';
@@ -365,6 +366,8 @@ const api = createApiHandler({
   pty: ptys ? createPtyRoutes(ptys) : undefined,
   spawn,
   attachments,
+  // Upload de arquivos arrastados/colados: só com bind local (a rota ainda exige loopback). Grava em ~/Frinus/anexos.
+  uploads: config.terminal ? { save: (file) => saveUpload(uploadsRoot(process.env), file) } : undefined,
   dictation,
   deliveries,
   files: deliveryFiles,

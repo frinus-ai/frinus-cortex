@@ -3336,4 +3336,20 @@ export const ES: Readonly<Record<string, string>> = {
   "limite de consultas do Frinus atingido hoje — tente mais tarde": "límite de consultas de Frinus alcanzado hoy — inténtalo más tarde",
   "recurso não encontrado na memória do Frinus": "recurso no encontrado en la memoria de Frinus",
   "a memória do Frinus respondeu com erro": "la memoria de Frinus respondió con un error",
+
+  // Nova conversa: seletor de pasta nativo (client/src/ui/newchat.ts, server/http/frinus.ts)
+  "Abrir o seletor de pastas do sistema": "Abrir el selector de carpetas del sistema",
+  "Escolher…": "Elegir…",
+  "Escolha a pasta na janela do sistema…": "Elige la carpeta en la ventana del sistema…",
+  "Seletor de pastas indisponível aqui: digite o caminho.": "Selector de carpetas no disponible aquí: escribe la ruta.",
+  "seletor de pasta indisponível neste computador": "selector de carpetas no disponible en este equipo",
+
+  // client/src/ui/attach.ts, server/uploads/store.ts, server/http/app.ts (anexos arrastar/colar)
+  "Solte para anexar (vira o caminho no prompt)": "Suelta para adjuntar (se vuelve la ruta en el prompt)",
+  "Não consegui pegar o arquivo da área de transferência (recent://). Arraste o arquivo para cá, ou copie-o pela pasta real no gerenciador de arquivos.": "No pude leer el archivo del portapapeles (recent://). Arrastra el archivo aquí, o cópialo desde su carpeta real en el gestor de archivos.",
+  "Não consegui anexar: {0}": "No se pudo adjuntar: {0}",
+  "{0} passa de {1} MB": "{0} supera los {1} MB",
+  "upload de anexos desligado: só funciona pelo próprio computador (http://localhost)": "la subida de adjuntos está desactivada: solo funciona desde este equipo (http://localhost)",
+  "anexos só são enviados pelo próprio computador (http://localhost ou http://127.0.0.1)": "los adjuntos solo se envían desde este equipo (http://localhost o http://127.0.0.1)",
+  "não foi possível gravar o anexo": "no se pudo guardar el adjunto",
 };

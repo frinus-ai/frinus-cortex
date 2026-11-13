@@ -28,6 +28,7 @@ ALIAS=""
 GUI=""            # "", "1" (sim) ou "0" (não)
 MCP_INSTALL=""
 SERVICE_NAME=frinus-office
+DICTATION=1       # ditado por voz (whisper local); --no-dictation desliga
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -35,6 +36,7 @@ while [ $# -gt 0 ]; do
     --alias) ALIAS="${2:?--alias precisa de um apelido}"; shift ;;
     --gui) GUI=1 ;;
     --no-gui) GUI=0 ;;
+    --no-dictation) DICTATION=0 ;;
     --mcp-install) MCP_INSTALL="${2:?--mcp-install precisa de um caminho}"; shift ;;
     --service) SERVICE_NAME="${2:?--service precisa de um nome}"; shift ;;
     -h|--help) sed -n '2,37p' "$0"; exit 0 ;;
@@ -64,6 +66,63 @@ ask()  { # ask <prompt> -> ecoa a resposta (lê do terminal real quando há um)
 
 say "Frinus — instalação ($([ "$is_wsl" = 1 ] && echo WSL || echo Linux))"
 [ "$DRY_RUN" = 1 ] && echo "   (dry-run: nada será alterado)"
+
+# --- Ditado por voz (whisper local, pt-BR) — DEPENDÊNCIAS -----------------------------------------------------
+# O ditado é LOCAL (nada de áudio sai do computador): precisa do whisper-cli (whisper.cpp), do ffmpeg e de um
+# modelo multilíngue (ggml-base.bin). O servidor acha isso sozinho (server/dictation/whisper.ts) e, achando,
+# o microfone aparece na caixa e no terminal, já ligado. Melhor esforço: se algo falhar, o resto da instalação
+# segue (o ditado é opcional).
+WHISPER_MODEL_DIR="$HOME/.local/share/whisper"
+WHISPER_MODEL="$WHISPER_MODEL_DIR/ggml-base.bin"
+WHISPER_MODEL_URL="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"
+LOCAL_BIN="$HOME/.local/bin"
+
+have() { command -v "$1" >/dev/null 2>&1; }
+apt_install() { # apt_install <pacotes...> — usa sudo se não for root; silencioso no dry-run
+  have apt-get || { echo "   (sem apt-get: instale manualmente: $*)"; return 1; }
+  local sudo=""; [ "$(id -u)" = 0 ] || sudo="sudo"
+  run $sudo apt-get update -y
+  run $sudo apt-get install -y "$@"
+}
+
+install_dictation() {
+  say "Ditado por voz (whisper local, pt-BR) — dependências"
+  # ffmpeg (converte o áudio do navegador para wav)
+  if have ffmpeg; then echo "   ffmpeg: ok"; else apt_install ffmpeg || echo "   (instale o ffmpeg para o ditado funcionar)"; fi
+
+  # whisper-cli (whisper.cpp): se não existir, compila do código (precisa de git + cmake + compilador C++)
+  if have whisper-cli || [ -x "$LOCAL_BIN/whisper-cli" ]; then
+    echo "   whisper-cli: ok"
+  else
+    if have git && have cmake && { have g++ || have c++ || have clang++; }; then
+      local src; src="$(mktemp -d)"
+      run git clone --depth 1 https://github.com/ggerganov/whisper.cpp "$src/whisper.cpp"
+      if [ "$DRY_RUN" != 1 ] && [ -d "$src/whisper.cpp" ]; then
+        ( cd "$src/whisper.cpp" && cmake -B build -DCMAKE_BUILD_TYPE=Release >/dev/null && cmake --build build --config Release -j"$(nproc 2>/dev/null || echo 2)" --target whisper-cli ) \
+          && mkdir -p "$LOCAL_BIN" \
+          && cp "$src/whisper.cpp/build/bin/whisper-cli" "$LOCAL_BIN/whisper-cli" \
+          && echo "   whisper-cli -> $LOCAL_BIN/whisper-cli" \
+          || echo "   (falha ao compilar o whisper.cpp; instale o whisper-cli manualmente)"
+      fi
+      rm -rf "$src"
+    else
+      echo "   (para o ditado, instale git + cmake + compilador C++ e rode de novo, ou instale o whisper-cli manualmente)"
+      [ "$DRY_RUN" = 1 ] || apt_install build-essential cmake git || true
+    fi
+  fi
+
+  # modelo multilíngue base (~148 MB) em ~/.local/share/whisper
+  if [ -f "$WHISPER_MODEL" ]; then
+    echo "   modelo: ok ($WHISPER_MODEL)"
+  else
+    run mkdir -p "$WHISPER_MODEL_DIR"
+    if have curl; then run curl -fL --retry 3 -o "$WHISPER_MODEL" "$WHISPER_MODEL_URL"
+    elif have wget; then run wget -O "$WHISPER_MODEL" "$WHISPER_MODEL_URL"
+    else echo "   (sem curl/wget: baixe $WHISPER_MODEL_URL para $WHISPER_MODEL)"; fi
+  fi
+
+  case ":$PATH:" in *":$LOCAL_BIN:"*) : ;; *) echo "   dica: garanta que $LOCAL_BIN está no PATH (para o whisper-cli ser encontrado)";; esac
+}
 
 # --- localizar o install.sh do frinus-mcp (reaproveita toda a lógica de cadastro de conta) --------------------
 if [ -z "$MCP_INSTALL" ]; then
@@ -107,6 +166,12 @@ if [ -z "$GUI" ]; then
 fi
 
 if [ "$GUI" = 1 ]; then
+  # Ditado por voz: dependências locais (best-effort, nunca aborta a instalação).
+  if [ "$DICTATION" = 1 ]; then
+    set +e
+    install_dictation
+    set -e
+  fi
   say "Interface gráfica: instalando e ATIVANDO tudo (nada a configurar à mão)"
   # install-office.sh já faz: build + FRINUS_ONLY mod:install (mod/plugins + uso em TODAS as contas Frinus) +
   # serviço systemd --user na 4748 + atalho. Com o uso lido de ~/.habblaud/usage (office.env), o cartão de cada

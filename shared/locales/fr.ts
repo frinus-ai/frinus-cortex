@@ -3352,4 +3352,20 @@ export const FR: Readonly<Record<string, string>> = {
   "limite de consultas do Frinus atingido hoje — tente mais tarde": "limite de requêtes Frinus atteinte aujourd'hui — réessayez plus tard",
   "recurso não encontrado na memória do Frinus": "ressource introuvable dans la mémoire Frinus",
   "a memória do Frinus respondeu com erro": "la mémoire Frinus a répondu avec une erreur",
+
+  // Nova conversa: seletor de pasta nativo (client/src/ui/newchat.ts, server/http/frinus.ts)
+  "Abrir o seletor de pastas do sistema": "Ouvrir le sélecteur de dossiers du système",
+  "Escolher…": "Choisir…",
+  "Escolha a pasta na janela do sistema…": "Choisissez le dossier dans la fenêtre du système…",
+  "Seletor de pastas indisponível aqui: digite o caminho.": "Sélecteur de dossiers indisponible ici : saisissez le chemin.",
+  "seletor de pasta indisponível neste computador": "sélecteur de dossiers indisponible sur cet ordinateur",
+
+  // client/src/ui/attach.ts, server/uploads/store.ts, server/http/app.ts (anexos arrastar/colar)
+  "Solte para anexar (vira o caminho no prompt)": "Déposez pour joindre (devient le chemin dans le prompt)",
+  "Não consegui pegar o arquivo da área de transferência (recent://). Arraste o arquivo para cá, ou copie-o pela pasta real no gerenciador de arquivos.": "Impossible de lire le fichier du presse-papiers (recent://). Glissez le fichier ici, ou copiez-le depuis son vrai dossier dans le gestionnaire de fichiers.",
+  "Não consegui anexar: {0}": "Impossible de joindre : {0}",
+  "{0} passa de {1} MB": "{0} dépasse {1} Mo",
+  "upload de anexos desligado: só funciona pelo próprio computador (http://localhost)": "l'envoi de pièces jointes est désactivé : il ne fonctionne que depuis cet ordinateur (http://localhost)",
+  "anexos só são enviados pelo próprio computador (http://localhost ou http://127.0.0.1)": "les pièces jointes ne sont envoyées que depuis cet ordinateur (http://localhost ou http://127.0.0.1)",
+  "não foi possível gravar o anexo": "impossible d'enregistrer la pièce jointe",
 };
