@@ -71,7 +71,7 @@ export class SoundSettingsGroup {
         h(
           'div',
           { class: 'ui-set__text' },
-          h('span', { class: 'ui-set__label', text: tr('Sons do escritório'), attrs: { id } }),
+          h('span', { class: 'ui-set__label', text: tr('Sons do córtex'), attrs: { id } }),
           h('span', { class: 'ui-set__hint', text: tr('Sintetizados no navegador e baixinhos. Com a aba oculta, só o sino de "precisa de você".') }),
         ),
         this.master,

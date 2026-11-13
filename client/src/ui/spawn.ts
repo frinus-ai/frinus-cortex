@@ -85,7 +85,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(path, { credentials: 'same-origin', cache: 'no-store', ...init });
   } catch {
-    throw new Error(tr('o Habblaud não respondeu'));
+    throw new Error(tr('o Córtex não respondeu'));
   }
   const body = (await res.json().catch(() => ({}))) as T & { error?: string };
   if (!res.ok) throw new Error(body.error ?? tr('erro {0}', [res.status]));
@@ -380,7 +380,7 @@ export class SpawnPanel {
         const running = info.how === 'cli';
         this.say(
           running
-            ? tr('Rodando: a sessão já começou no computador e aparece no escritório em instantes.')
+            ? tr('Rodando: a sessão já começou no computador e aparece no córtex em instantes.')
             : info.note
               ? tr('Abri no app do Claude: aperte Enter lá para começar. Não rodou sozinho: {0}.', [info.note])
               : tr('Abri no app do Claude: aperte Enter lá para começar.'),

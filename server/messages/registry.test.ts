@@ -1,4 +1,4 @@
-// Registro das mensagens pelo escritório: presença das sessões (canMessage no snapshot), validação, limites, entrega
+// Registro das mensagens pelo córtex: presença das sessões (canMessage no snapshot), validação, limites, entrega
 // ao plugin, confirmação, prazos, agente que sai, limpeza das resolvidas e a entrega fictícia do demo.
 // Tudo com dados sintéticos e relógio injetado.
 import { describe, expect, it } from 'vitest';
@@ -195,7 +195,7 @@ describe('MessageRegistry: entrega pelo plugin', () => {
     const commit = office.commit();
     const feed = commit.feed.map((f) => f.activity);
     expect(feed).toHaveLength(1);
-    expect(feed[0]).toMatchObject({ kind: 'communicate', icon: '✉️', text: 'Mensagem pelo Habblaud', at: clock.now() });
+    expect(feed[0]).toMatchObject({ kind: 'communicate', icon: '✉️', text: 'Mensagem pelo Córtex', at: clock.now() });
     expect(feed[0].detail).not.toContain(secret);
     expect(feed[0].detail!.length).toBeLessThanOrEqual(300);
     expect(feed[0].detail).toMatch(/^Use /);
@@ -315,7 +315,7 @@ describe('MessageRegistry: demo', () => {
     registry.tick();
     expect(registry.get(id)?.status).toBe('delivered');
     const after = office.commit().snapshot.agents.find((a) => a.id === demo.id)!;
-    expect(after.recent.at(-1)).toMatchObject({ kind: 'communicate', text: 'Mensagem pelo Habblaud', detail: 'oi, demo' });
+    expect(after.recent.at(-1)).toMatchObject({ kind: 'communicate', text: 'Mensagem pelo Córtex', detail: 'oi, demo' });
   });
 
   it('demo desligado no meio do caminho: a mensagem falha (o agente saiu)', () => {

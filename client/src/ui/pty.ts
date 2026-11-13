@@ -188,7 +188,7 @@ export class PtyPanel implements UiComponent, PtyControl {
     if (agent) updateAccountChip(this.accEl, this.ctx.account(agent.account), agent.account);
     const room = agent ? this.ctx.store.room(agent.roomId) : undefined;
     setText(this.roomEl, room?.name ?? '');
-    setText(this.stateEl, agent ? tr('em outro terminal') : tr('saiu do escritório'));
+    setText(this.stateEl, agent ? tr('em outro terminal') : tr('saiu do córtex'));
     setText(this.awayTitle, agent?.title ?? '');
     setHidden(this.awayTitle, !agent?.title);
     this.actions.withTakeover = true;

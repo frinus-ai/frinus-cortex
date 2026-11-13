@@ -29,7 +29,7 @@ async function start(extra: Partial<ApiDeps> = {}, officeExtra: Partial<OfficeDe
   const dist = join(tmp.dir, 'dist');
   mkdirSync(join(dist, 'assets', 'brand'), { recursive: true });
   mkdirSync(join(dist, 'bundle'), { recursive: true });
-  writeFileSync(join(dist, 'index.html'), '<!doctype html><title>Habblaud</title>');
+  writeFileSync(join(dist, 'index.html'), '<!doctype html><title>Córtex</title>');
   writeFileSync(join(dist, 'bundle', 'main-abc12345.js'), 'console.log(1)');
   writeFileSync(join(dist, 'assets', 'brand', 'logo-mark.png'), 'png');
   writeFileSync(join(dist, 'assets', 'manifest.json'), '{}');
@@ -239,7 +239,7 @@ describe('API HTTP', () => {
   it('estáticos: SPA fallback, immutable só no /bundle (hash) e revalidação no resto', async () => {
     const page = await fetch(`${env.base}/sala/qualquer`);
     expect(page.status).toBe(200);
-    expect(await page.text()).toContain('<title>Habblaud</title>');
+    expect(await page.text()).toContain('<title>Córtex</title>');
     expect(page.headers.get('cache-control')).toBe(REVALIDATE);
     expect(page.headers.get('x-frame-options')).toBe('DENY');
     const bundle = await fetch(`${env.base}/bundle/main-abc12345.js`);
@@ -264,7 +264,7 @@ describe('API HTTP', () => {
     expect((await fetch(`${env.base}/bundle/nao-existe.js`)).status).toBe(404);
     // Tentativa de sair da pasta cai no index.html, nunca em arquivos de fora.
     const escape = await fetch(`${env.base}/..%2F..%2Fetc%2Fpasswd`);
-    expect(await escape.text()).toContain('<title>Habblaud</title>');
+    expect(await escape.text()).toContain('<title>Córtex</title>');
   });
 });
 
@@ -311,7 +311,7 @@ describe('personagem do projeto (PUT/DELETE /api/agents/:id/character)', () => {
     }
   });
 
-  it('404 para subagente e agente desconhecido; 409 para nome de quem está no escritório', async () => {
+  it('404 para subagente e agente desconhecido; 409 para nome de quem está no córtex', async () => {
     env.office.addSub({ id: 's1:x', parentId: '.claude:1', sessionId: 's1', role: 'Explore', background: false, startedAt: Date.now() });
     expect((await put({ name: 'Ana', seed: 1, parts: {} }, 's1:x')).status).toBe(404);
     expect((await put({ name: 'Ana', seed: 1, parts: {} }, 'nao-existe')).status).toBe(404);
@@ -320,7 +320,7 @@ describe('personagem do projeto (PUT/DELETE /api/agents/:id/character)', () => {
     const other = env.office.get('.claude:2')!.name;
     const res = await put({ name: other, seed: 1, parts: {} });
     expect(res.status).toBe(409);
-    expect(((await res.json()) as { error: string }).error).toBe(`${other} já está no escritório em web`);
+    expect(((await res.json()) as { error: string }).error).toBe(`${other} já está no córtex em web`);
   });
 
   it('403 com Host que não é local (mesmo liberado em HABBLAUD_ALLOWED_HOSTS); 405 para GET', async () => {
@@ -359,7 +359,7 @@ describe('GET /api/mod/summary (mod do Claude Code)', () => {
     env.cleanup();
   });
 
-  it('sem parâmetros: o escritório inteiro (presentes, trabalhando, quem espera do mais antigo ao mais novo)', async () => {
+  it('sem parâmetros: o córtex inteiro (presentes, trabalhando, quem espera do mais antigo ao mais novo)', async () => {
     const s = await summary();
     expect(s).toMatchObject({ version: '9.9.9', agents: 4, working: 1 });
     expect(s.waiting.map((w) => w.id).sort()).toEqual(['.claude:2', 's1:a1']);
@@ -378,7 +378,7 @@ describe('GET /api/mod/summary (mod do Claude Code)', () => {
     expect((await summary('?account=.claude')).agents).toBe(4);
   });
 
-  it('answerable = há pedido de permissão para responder pelo escritório', async () => {
+  it('answerable = há pedido de permissão para responder pelo córtex', async () => {
     perms.set('.claude:2', { id: 'p1', tool: 'Bash', title: 'Bash(npm test)', text: 'Rodando os testes', icon: '🧪', createdAt: Date.now(), expiresAt: Date.now() + 300_000 });
     env.office.markDirty();
     const s = await summary('?account=.claude&session=s1');

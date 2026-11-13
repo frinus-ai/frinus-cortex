@@ -910,10 +910,10 @@ export class Office {
     const key = nameKey(name);
     for (const r of this.agents.values()) {
       if (r.info.id === id || (r.removeAt !== undefined && !leaving) || nameKey(r.info.name) !== key) continue;
-      return tr('{0} já está no escritório em {1}', [r.info.name, this.roomName(r.info.roomId)]);
+      return tr('{0} já está no córtex em {1}', [r.info.name, this.roomName(r.info.roomId)]);
     }
     for (const a of this.demoSnap?.agents ?? []) {
-      if (nameKey(a.name) === key) return tr('{0} já está no escritório em {1}', [a.name, this.roomName(a.roomId)]);
+      if (nameKey(a.name) === key) return tr('{0} já está no córtex em {1}', [a.name, this.roomName(a.roomId)]);
     }
     for (const [n, room] of this.deps.names.reservedNames(roomId)) {
       if (nameKey(n) === key) return tr('{0} já é o personagem de {1}', [n, this.roomName(room)]);

@@ -1,4 +1,4 @@
-// Mensagens pelo escritório pelas rotas de verdade (guard, app e server/messages/http.ts): a trava da config
+// Mensagens pelo córtex pelas rotas de verdade (guard, app e server/messages/http.ts): a trava da config
 // (terminal + HABBLAUD_MENSAGENS), a trava das rotas (recurso desligado / Host que não é local), os status (400, 404,
 // 405, 409, 429), o fluxo completo página → caixa de entrada do plugin → confirmação → consulta, e o demo.
 import http from 'node:http';
@@ -236,7 +236,7 @@ describe('rotas', () => {
     expect(done).toMatchObject({ id: msg.id, status: 'delivered' });
     expect(done.updatedAt).toBeGreaterThanOrEqual(done.createdAt);
     const agent = (await snapshot(srv)).agents.find((a) => a.id === MAIN)!;
-    expect(agent.recent.at(-1)).toMatchObject({ icon: '✉️', text: 'Mensagem pelo Habblaud', detail: 'Agora roda os testes de novo e me diga o que falhou' });
+    expect(agent.recent.at(-1)).toMatchObject({ icon: '✉️', text: 'Mensagem pelo Córtex', detail: 'Agora roda os testes de novo e me diga o que falhou' });
   });
 
   it('a sessão some (sem rodadas): canMessage volta a falso e a mensagem na fila falha no prazo', async () => {
@@ -265,7 +265,7 @@ describe('rotas', () => {
     expect((await request(srv.base, `/api/messages/${encodeURIComponent(msg.id)}`)).json).toMatchObject({ status: 'delivered' });
     srv.office.tick();
     const after = (await snapshot(srv)).agents.find((a) => a.id === demo.id)!;
-    expect(after.recent.some((a) => a.text === 'Mensagem pelo Habblaud' && a.detail === 'oi, demo')).toBe(true);
+    expect(after.recent.some((a) => a.text === 'Mensagem pelo Córtex' && a.detail === 'oi, demo')).toBe(true);
   });
 
   it('demo com o recurso desligado: os agentes fictícios também não recebem', async () => {

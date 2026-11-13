@@ -213,7 +213,6 @@ class AgentView {
   private dot: HTMLElement;
   private statusText: HTMLElement;
   private statusSince: HTMLElement;
-  private followBtn: HTMLButtonElement;
   private termBtn: HTMLButtonElement;
   private termLabel: HTMLElement;
   /** Por que o terminal não abre: no celular não há hover para ler o title, então o toque mostra o motivo aqui. */
@@ -289,14 +288,11 @@ class AgentView {
       h('div', { class: 'ui-hero__acc' }, this.accChip, this.accName, this.accProv, this.accEmail),
       h('div', { class: 'ui-hero__where' }, h('span', { class: 'ui-muted', text: tr('Sala') }), this.roomBtn),
     );
-    this.gone = h('p', { class: 'ui-gone', text: tr('Este agente já saiu do escritório.'), hidden: true });
+    this.gone = h('p', { class: 'ui-gone', text: tr('Este agente já saiu do córtex.'), hidden: true });
 
     this.dot = createStatusDot();
     this.statusText = h('span', { class: 'ui-status__text' });
     this.statusSince = h('span', { class: 'ui-status__since' });
-    this.followBtn = h('button', { class: 'ui-btn', type: 'button', attrs: { 'aria-pressed': 'false' }, title: tr('Câmera acompanha o agente (F)'), on: { click: () => this.toggleFollow() } });
-    this.followBtn.innerHTML = ICONS.follow;
-    this.followBtn.append(h('span', { text: tr('Seguir') }));
     const centerBtn = h('button', { class: 'ui-btn', type: 'button', title: tr('Levar a câmera até o agente'), on: { click: () => ctx.focusSelection() } });
     centerBtn.innerHTML = ICONS.center;
     centerBtn.append(h('span', { text: tr('Centralizar') }));
@@ -304,7 +300,7 @@ class AgentView {
       'div',
       { class: 'ui-status' },
       h('span', { class: 'ui-status__label' }, this.dot, this.statusText, this.statusSince),
-      h('span', { class: 'ui-status__actions' }, this.followBtn, centerBtn),
+      h('span', { class: 'ui-status__actions' }, centerBtn),
     );
 
     // Terminal: a conversa da sessão como o Claude Code mostra, ao vivo (só com acesso local).
@@ -513,13 +509,6 @@ class AgentView {
     this.ctx.invalidate();
   }
 
-  toggleFollow(): void {
-    const follow = !this.ctx.world.getOptions().followSelected;
-    this.ctx.world.setOptions({ followSelected: follow });
-    // Foca de novo com a opção nova: ligar começa a seguir; desligar mantém o agente no centro, parado.
-    if (this.id) this.ctx.focusSelection();
-    this.ctx.invalidate();
-  }
 
   render(): void {
     const live = this.ctx.agent(this.id);
@@ -561,9 +550,6 @@ class AgentView {
     const since = wait?.foreground ? wait.since : a.statusSince;
     setText(this.statusSince, relativeTime(since, now));
     setTitle(this.statusSince, tr('Desde {0}', [formatClock(since)]));
-    const following = this.ctx.world.getOptions().followSelected;
-    setAttr(this.followBtn, 'aria-pressed', String(following));
-    this.followBtn.classList.toggle('is-on', following);
     this.renderTerminalButton(!!live);
 
     // Alerta.
@@ -639,7 +625,7 @@ class AgentView {
       const parent = a.parentId ? this.ctx.agent(a.parentId) : undefined;
       setText(this.teamSec.title, tr('Responsável'));
       setText(this.teamSec.extra, '');
-      setText(this.teamEmpty, tr('O agente principal já não está no escritório.'));
+      setText(this.teamEmpty, tr('O agente principal já não está no córtex.'));
       setHidden(this.teamEmpty, !!parent);
       this.team.sync(parent ? [parent] : []);
     }
@@ -715,14 +701,14 @@ class AgentView {
               ? tr('O terminal não está liberado no acesso remoto (HABBLAUD_REMOTE_ALLOW).')
               : TERMINAL_UNAVAILABLE_HINT
           : !live
-            ? tr('O agente já saiu do escritório.')
+            ? tr('O agente já saiu do córtex.')
             : kind === 'ao vivo'
               ? tr('Ver a conversa desta sessão como no {0}, ao vivo{1} (T)', [
                   provider === 'codex' ? 'Codex' : tr('terminal do Claude Code'),
                   this.pty.enabled && ptyControllable(this.last) ? tr('; "Assumir daqui" continua nela aqui') : '',
                 ])
               : kind === 'interativo'
-                ? tr('Abrir o terminal desta sessão, que roda aqui no Habblaud (T)')
+                ? tr('Abrir o terminal desta sessão, que roda aqui no Córtex (T)')
                 : tr('Abrir o terminal: a sessão roda em outro terminal; dá para assumir daqui (T)'),
     );
   }
@@ -992,10 +978,6 @@ export class Drawer implements UiComponent {
   /** Solta do lugar (arrastada pela barra). */
   get floating(): boolean {
     return this.movable.floating;
-  }
-
-  toggleFollow(): void {
-    if (this.mode === 'agent') this.agentView.toggleFollow();
   }
 
   render(): void {

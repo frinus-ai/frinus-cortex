@@ -82,7 +82,7 @@ export class Toasts implements UiComponent {
     const count = h('span', { class: 'ui-toast__count', hidden: true });
     const body = h(
       'button',
-      { class: 'ui-toast__body', type: 'button', title: n.agentId || n.roomId ? tr('Mostrar no escritório') : '' },
+      { class: 'ui-toast__body', type: 'button', title: n.agentId || n.roomId ? tr('Mostrar no córtex') : '' },
       agent ? createAvatar(agent, 'xs') : null,
       h('span', { class: 'ui-toast__text', text: n.text }),
       count,
@@ -95,7 +95,7 @@ export class Toasts implements UiComponent {
     const toast: Toast = { key, notice: n, el, count, repeats: 1, timer: null, remaining: 0, startedAt: 0 };
     if (n.level === 'alert' && n.agentId) {
       const id = n.agentId;
-      toast.answer = h('button', { class: 'ui-toast__answer', type: 'button', text: tr('Responder'), title: tr('Responder pelo escritório (aprovar, recusar ou responder a pergunta)'), hidden: !agent?.permission, on: { click: () => focusPermission(this.ctx, id) } });
+      toast.answer = h('button', { class: 'ui-toast__answer', type: 'button', text: tr('Responder'), title: tr('Responder pelo córtex (aprovar, recusar ou responder a pergunta)'), hidden: !agent?.permission, on: { click: () => focusPermission(this.ctx, id) } });
       el.append(toast.answer);
     }
     el.append(iconButton(ICONS.close, tr('Fechar aviso'), () => this.dismiss(toast), 'ui-icon-btn--sm ui-toast__close'));

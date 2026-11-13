@@ -1,7 +1,7 @@
 {
-  "name": "Frinus Office",
+  "name": "Frinus Córtex",
   "short_name": "Frinus",
-  "description": "A Mente por Trás da sua IA: o escritório dos seus agentes com memória — quem trabalha, quem precisa de você e o que foi entregue.",
+  "description": "A Mente por Trás da sua IA: o córtex dos seus agentes com memória — quem trabalha, quem precisa de você e o que foi entregue.",
   "lang": "pt-BR",
   "start_url": "/?app=1",
   "scope": "/",

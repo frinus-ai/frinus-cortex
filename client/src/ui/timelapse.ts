@@ -156,7 +156,7 @@ export class TimelapsePlayer implements UiComponent {
       if (this.active) this.seek(this.t);
       this.ctx.invalidate();
     });
-    const liveBtn = h('button', { class: 'ui-btn ui-btn--sm ui-lapse__live', type: 'button', title: tr('Sair do timelapse e voltar ao escritório ao vivo (L)') }, h('span', { class: 'ui-lapse__live-dot', attrs: { 'aria-hidden': 'true' } }), tr('Voltar ao vivo'));
+    const liveBtn = h('button', { class: 'ui-btn ui-btn--sm ui-lapse__live', type: 'button', title: tr('Sair do timelapse e voltar ao córtex ao vivo (L)') }, h('span', { class: 'ui-lapse__live-dot', attrs: { 'aria-hidden': 'true' } }), tr('Voltar ao vivo'));
     liveBtn.addEventListener('click', () => this.close());
 
     this.chart = h('canvas', { class: 'ui-lapse__chart', attrs: { 'aria-hidden': 'true' } });
@@ -261,7 +261,7 @@ export class TimelapsePlayer implements UiComponent {
       if (!r.days.length) {
         this.status = 'empty';
         this.message = r.recording
-          ? tr('Nada gravado ainda: o Habblaud grava o escritório enquanto está ligado. Volte daqui a pouco.')
+          ? tr('Nada gravado ainda: o Córtex grava o córtex enquanto está ligado. Volte daqui a pouco.')
           : tr('A gravação está desligada neste servidor (HABBLAUD_TIMELINE=0) e não há dias gravados.');
         this.ctx.invalidate();
         return;
@@ -286,7 +286,7 @@ export class TimelapsePlayer implements UiComponent {
     this.exit();
     this.status = 'idle';
     this.ctx.invalidate();
-    this.ctx.announce(tr('De volta ao escritório ao vivo.'));
+    this.ctx.announce(tr('De volta ao córtex ao vivo.'));
   }
 
   /** Marca a velocidade atual e deixa só ela na ordem do Tab; com `focus`, move o foco para ela. */

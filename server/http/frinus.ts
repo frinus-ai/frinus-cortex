@@ -11,6 +11,7 @@
 //   GET  /api/frinus/health?account=          -> proxy GET /training/stats (prova que a chave funciona)
 //   POST /api/frinus/pick-folder {start?}     -> abre o seletor de pasta NATIVO do SO e devolve o caminho escolhido
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tr } from '../../shared/i18n';
@@ -23,6 +24,13 @@ const MEMORY_URL = (process.env.FRINUS_OFFICE_MEMORY_URL || 'https://frinus-memo
 /** Tempo máximo esperando a Memory Engine (a rede pode estar lenta; nunca pendura a página). */
 const UPSTREAM_TIMEOUT_MS = 15_000;
 const SEARCH_LIMIT_MAX = 50;
+/** Control Plane (nome da empresa da chave); sobrescreva com FRINUS_OFFICE_CP_URL. */
+const CP_URL = (process.env.FRINUS_OFFICE_CP_URL || 'https://frinus-api.rdxsec.com.br').replace(/\/+$/, '');
+/** Identidade Frinus de cada chave: guardada em memória por 10 min (falha: 1 min, para tentar de novo logo). */
+const IDENTITY_TTL_MS = 10 * 60_000;
+const IDENTITY_FAIL_TTL_MS = 60_000;
+/** O seletor de conta não pode esperar a rede: cada consulta de identidade desiste em 5 s. */
+const IDENTITY_TIMEOUT_MS = 5_000;
 
 /** O mínimo de uma conta que esta rota precisa: id, pasta de config e metadados de exibição. */
 export interface FrinusAccount {
@@ -77,16 +85,86 @@ function accountLabel(acc: FrinusAccount): string {
   return acc.detected.email || acc.detected.name || acc.id;
 }
 
-/** Contas com chave do Frinus configurada (para o seletor); a conta padrão vem primeiro. */
-function frinusAccounts(deps: FrinusRouteDeps): AccountSummary[] {
-  const out: AccountSummary[] = [];
-  for (const acc of deps.accounts()) {
-    if (!readFrinusKey(acc.dir, deps.home)) continue;
-    out.push({ id: acc.id, label: accountLabel(acc), organization: acc.detected.organization, isDefault: isDefaultDir(acc.dir, deps.home) });
+/** Quem a chave é no Frinus: e-mail do usuário e nome da empresa (não a conta/organização do Claude). */
+export interface FrinusIdentity {
+  email?: string;
+  organization?: string;
+}
+
+type FetchLike = (url: string, init: { headers: Record<string, string>; signal: AbortSignal }) => Promise<{ status: number; json(): Promise<unknown> }>;
+
+const identityCache = new Map<string, { until: number; value: Promise<FrinusIdentity | null> }>();
+
+/** Limpa o cache de identidades (testes). */
+export function clearFrinusIdentityCache(): void {
+  identityCache.clear();
+}
+
+async function getJson(fetchImpl: FetchLike, url: string, key: string): Promise<Record<string, unknown> | null> {
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), IDENTITY_TIMEOUT_MS);
+  try {
+    const res = await fetchImpl(url, { headers: { 'X-API-Key': key, Accept: 'application/json' }, signal: ac.signal });
+    if (res.status < 200 || res.status >= 300) return null;
+    const j = await res.json().catch(() => null);
+    return j && typeof j === 'object' && !Array.isArray(j) ? (j as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+/**
+ * Identidade Frinus da chave: e-mail pela Memory Engine (/auth/me) e nome da empresa pelo Control Plane
+ * (/api/v1/templates/mcp-config; sem ele, o slug do /auth/me). Cache por hash da chave — a chave em si nunca é
+ * guardada, logada nem devolvida. Sem rede: null (o seletor cai no rótulo local).
+ */
+export function frinusIdentity(key: string, now = Date.now(), fetchImpl: FetchLike = fetch as unknown as FetchLike): Promise<FrinusIdentity | null> {
+  const id = createHash('sha256').update(key).digest('hex');
+  const hit = identityCache.get(id);
+  if (hit && hit.until > now) return hit.value;
+  const value = (async (): Promise<FrinusIdentity | null> => {
+    const [me, cfg] = await Promise.all([getJson(fetchImpl, `${MEMORY_URL}/auth/me`, key), getJson(fetchImpl, `${CP_URL}/api/v1/templates/mcp-config`, key)]);
+    const org = cfg?.organization && typeof cfg.organization === 'object' ? (cfg.organization as Record<string, unknown>) : undefined;
+    const out: FrinusIdentity = {};
+    const email = asString(me?.email) ?? asString(me?.username);
+    if (email) out.email = email.trim();
+    const organization = asString(org?.name) ?? asString(me?.org_slug);
+    if (organization) out.organization = organization.trim();
+    return out.email || out.organization ? out : null;
+  })();
+  const entry = { until: now + IDENTITY_TTL_MS, value };
+  identityCache.set(id, entry);
+  void value.then((v) => {
+    if (!v && identityCache.get(id) === entry) entry.until = now + IDENTITY_FAIL_TTL_MS;
+  });
+  return value;
+}
+
+/**
+ * Contas com chave do Frinus configurada (para o seletor); a conta padrão vem primeiro. O rótulo é a identidade
+ * FRINUS da chave (e-mail + empresa); sem rede, o e-mail/nome da conta local, sem empresa (a organização que o
+ * Claude Code detecta é a do Claude, não a do Frinus, e confundiria).
+ */
+async function frinusAccounts(deps: FrinusRouteDeps, identity: typeof frinusIdentity = frinusIdentity): Promise<AccountSummary[]> {
+  const withKey = deps.accounts().flatMap((acc) => {
+    const key = readFrinusKey(acc.dir, deps.home);
+    return key ? [{ acc, key }] : [];
+  });
+  const ids = await Promise.all(withKey.map(({ key }) => identity(key).catch(() => null)));
+  const out: AccountSummary[] = withKey.map(({ acc }, i) => {
+    const who = ids[i];
+    const summary: AccountSummary = { id: acc.id, label: who?.email ?? accountLabel(acc), isDefault: isDefaultDir(acc.dir, deps.home) };
+    if (who?.organization) summary.organization = who.organization;
+    return summary;
+  });
   out.sort((a, b) => Number(b.isDefault) - Number(a.isDefault) || a.label.localeCompare(b.label));
   return out;
 }
+
+/** Só para testes: a listagem do seletor com uma identidade simulada. */
+export const frinusAccountsForTest = frinusAccounts;
 
 /** Resolve a chave da conta pedida; erro humano quando não dá. */
 function keyFor(deps: FrinusRouteDeps, accountId: unknown): { key: string } {
@@ -252,11 +330,9 @@ export function createFrinusRoutes(deps: FrinusRouteDeps): (req: IncomingMessage
         sendJson(res, 405, { error: tr('método não permitido') });
       } else {
         req.resume();
-        try {
-          sendJson(res, 200, { accounts: frinusAccounts(deps) });
-        } catch (err) {
-          fail(res, err);
-        }
+        frinusAccounts(deps)
+          .then((accounts) => sendJson(res, 200, { accounts }))
+          .catch((err) => fail(res, err));
       }
       return true;
     }

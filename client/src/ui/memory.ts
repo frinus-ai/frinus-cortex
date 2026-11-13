@@ -79,7 +79,7 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
   try {
     res = await fetch(path, { credentials: 'same-origin', cache: 'no-store', ...init });
   } catch {
-    throw new Error(tr('o Frinus Office não respondeu'));
+    throw new Error(tr('o Frinus Córtex não respondeu'));
   }
   const body = (await res.json().catch(() => ({}))) as T & { error?: string };
   if (!res.ok) throw new Error(body?.error || tr('não foi possível concluir a busca'));
@@ -145,7 +145,7 @@ export class MemorySearchPanel {
     this.searchInput = h('input', {
       class: 'ui-mem-input',
       type: 'search',
-      attrs: { placeholder: tr('Buscar na memória (ex.: Frinus Office)'), 'aria-label': tr('Termo de busca'), enterkeyhint: 'search' },
+      attrs: { placeholder: tr('Buscar na memória (ex.: Frinus Córtex)'), 'aria-label': tr('Termo de busca'), enterkeyhint: 'search' },
       on: {
         keydown: (e: KeyboardEvent) => {
           if (e.key === 'Enter') {
@@ -280,7 +280,7 @@ export class MemorySearchPanel {
   }
 
   private accountLabel(a: AccountSummary): string {
-    return a.organization ? `${a.label} — ${a.organization}` : a.label;
+    return a.organization ? `${a.organization} — ${a.label}` : a.label;
   }
 
   private onAccountChange(): void {

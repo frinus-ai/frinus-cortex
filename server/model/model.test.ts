@@ -13,7 +13,7 @@ import { normalizeCwd, roomDisplayNames, SlotAllocator } from './rooms';
 
 setQuiet(true);
 
-describe('specialistName (Frinus Office)', () => {
+describe('specialistName (Frinus Córtex)', () => {
   it('frinus-specialist: usa o trecho da description antes de " · " como nome do especialista', () => {
     expect(specialistName('frinus-specialist', 'appsec-engineer · revisão de segurança')).toBe('appsec-engineer');
     expect(specialistName('frinus-specialist', 'backend-python-memory · ajustar busca')).toBe('backend-python-memory');
@@ -302,7 +302,7 @@ describe('Office', () => {
     expect(office.get('acc:1')!.activity?.id).toBe('w1');
   });
 
-  it('boot contado: várias fontes bootando, o escritório só fica pronto quando a última termina', () => {
+  it('boot contado: várias fontes bootando, o córtex só fica pronto quando a última termina', () => {
     const { office, advance, now } = makeOffice();
     expect(office.isBooting()).toBe(false);
     office.beginBoot(); // fonte A (ex.: Claude Code)
@@ -551,7 +551,7 @@ describe('Office: personagem do projeto', () => {
     office.closeMain('acc:1');
     advance(5_000);
     office.addMain(main('acc:2', 's2', '/p/api', now()));
-    // Frinus Office: a aparência do personagem da sala volta (seed, peças, custom), mas o nome é sempre "Frinus".
+    // Frinus Córtex: a aparência do personagem da sala volta (seed, peças, custom), mas o nome é sempre "Frinus".
     expect(office.get('acc:2')).toMatchObject({ name: FRINUS_MAIN_NAME, seed: 42, parts, custom: true });
   });
 
@@ -579,14 +579,14 @@ describe('Office: personagem do projeto', () => {
     expect(nameKey(office.get('acc:9')!.name)).not.toBe('ana');
   });
 
-  it('conflitos: alguém no escritório (sem diferenciar maiúsculas), personagem de outra sala e o demo', () => {
+  it('conflitos: alguém no córtex (sem diferenciar maiúsculas), personagem de outra sala e o demo', () => {
     const { office, advance, now } = makeOffice();
     office.addMain(main('acc:1', 's1', '/p/api', now()));
     office.addMain(main('acc:2', 's2', '/p/web', now()));
     const other = office.get('acc:2')!.name;
     expect(office.setCharacter('acc:1', { name: other.toUpperCase(), seed: 1, parts: {} })).toEqual({
       result: 'conflict',
-      message: `${other} já está no escritório em web`,
+      message: `${other} já está no córtex em web`,
     });
     expect(office.setCharacter('acc:2', { name: 'Zé', seed: 1, parts: {} })).toEqual({ result: 'ok' });
     office.closeMain('acc:2');
@@ -648,7 +648,7 @@ describe('Office: personagem do projeto', () => {
     expect(names.get('s2')).toBeUndefined();
   });
 
-  describe('reinício do Habblaud (names.json em arquivo)', () => {
+  describe('reinício do Córtex (names.json em arquivo)', () => {
     /** Grava o names.json e sobe um NameStore e um Office novos lendo o mesmo arquivo. */
     const restart = (before: NameStore, file: string) => {
       before.flush();
@@ -775,7 +775,7 @@ describe('Office: personagem do projeto', () => {
         advance(OFFLINE_GRACE_MS + 1);
         office.tick();
         office.addMain(main('acc:1', 's1', '/p/api', now()));
-        // Frinus Office: a aparência do personagem da sala volta, mas o nome exibido é sempre "Frinus".
+        // Frinus Córtex: a aparência do personagem da sala volta, mas o nome exibido é sempre "Frinus".
         expect(office.get('acc:1')).toMatchObject({ name: FRINUS_MAIN_NAME, custom: true });
         office.addMain(main('acc:2', 's2', '/p/api', now()));
         expect(office.setCharacter('acc:2', { name: 'Bia', seed: 3, parts: {} })).toEqual({ result: 'ok' });

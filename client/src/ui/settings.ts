@@ -123,7 +123,7 @@ export class SettingsPopover implements UiComponent {
       (v) => ctx.updatePrefs({ bubbles: v }),
     );
     this.liveliness = segmented<UiPrefs['liveliness']>(
-      tr('Movimento pelo escritório'),
+      tr('Movimento pelo córtex'),
       [
         ['calm', tr('Calmo')],
         ['normal', tr('Normal')],
@@ -142,15 +142,15 @@ export class SettingsPopover implements UiComponent {
     );
     this.daylight.row.append(h('span', { class: 'ui-set__hint', text: tr('Automático: céu, luzes e sol nas janelas seguem a hora local.') }));
     this.theme = segmented<UiPrefs['theme']>(
-      tr('Tema do escritório'),
-      [['frinus', tr('Cérebro')], ['auto', tr('Automático')], ['none', tr('Escritório')], ['christmas', tr('Natal')], ['halloween', tr('Halloween')]],
+      tr('Tema do córtex'),
+      [['frinus', tr('Cérebro')], ['auto', tr('Automático')], ['none', tr('Pixel')], ['christmas', tr('Natal')], ['halloween', tr('Halloween')]],
       (v) => {
         ctx.updatePrefs({ theme: v });
         // Com o World ligado e a conta aprovada, o tema também vai para o prédio (clicar de novo reenvia).
         void this.world.onThemePicked(v);
       },
     );
-    this.theme.row.append(h('span', { class: 'ui-set__hint', text: tr('Cérebro: a constelação neural do Frinus — cada sessão é um soma, cada subagente um neurônio, a memória pulsa em âmbar até o hipocampo (padrão). Escritório: o visual original do Habblaud. Automático: Halloween em outubro e Natal de 1º de novembro a 26 de dezembro.') }));
+    this.theme.row.append(h('span', { class: 'ui-set__hint', text: tr('Cérebro: a constelação neural do Frinus — cada sessão é um soma, cada subagente um neurônio, a memória pulsa em âmbar até o hipocampo (padrão). Pixel: o visual clássico em pixel art. Automático: Halloween em outubro e Natal de 1º de novembro a 26 de dezembro.') }));
     this.soundGroup = new SoundSettingsGroup(ctx, sound);
 
     // Nomes dos idiomas sempre na própria língua, para quem não entende o idioma atual achar o seu.
@@ -160,14 +160,14 @@ export class SettingsPopover implements UiComponent {
       (v) => pickLanguage(v),
     );
     this.language.row.append(
-      h('span', { class: 'ui-set__hint', text: tr('Os textos das atividades vêm do servidor: seguem HABBLAUD_LANG ou o idioma do sistema onde o Habblaud roda (o inglês, só com HABBLAUD_LANG=en).') }),
+      h('span', { class: 'ui-set__hint', text: tr('Os textos das atividades vêm do servidor: seguem HABBLAUD_LANG ou o idioma do sistema onde o Córtex roda (o inglês, só com HABBLAUD_LANG=en).') }),
     );
 
     this.demoGroup = h(
       'div',
       { class: 'ui-set-group' },
       h('h3', { text: tr('Dados') }),
-      sw('demo', tr('Modo demonstração'), tr('Coloca agentes fictícios no escritório, junto com os reais.'), () => void this.toggleDemo()),
+      sw('demo', tr('Modo demonstração'), tr('Coloca agentes fictícios no córtex, junto com os reais.'), () => void this.toggleDemo()),
     );
 
     this.logoutBtn = h('button', { class: 'ui-btn', type: 'button', text: tr('Sair'), on: { click: () => void this.logout() } }) as HTMLButtonElement;
@@ -200,7 +200,7 @@ export class SettingsPopover implements UiComponent {
       h(
         'div',
         { class: 'ui-set-group' },
-        h('h3', { text: tr('Escritório') }),
+        h('h3', { text: tr('Córtex') }),
         sw('showNames', tr('Mostrar nomes'), tr('Etiqueta com o nome acima de cada personagem.'), flip('showNames')),
         this.bubbles.row,
         this.liveliness.row,

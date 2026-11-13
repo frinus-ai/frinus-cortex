@@ -83,7 +83,7 @@ export class CharacterEditor {
     setHidden(this.button, !allowed);
     if (this.editing && !allowed) {
       this.close();
-      if (!live || a.status === 'offline') this.ctx.announce(tr('O agente saiu do escritório.'));
+      if (!live || a.status === 'offline') this.ctx.announce(tr('O agente saiu do córtex.'));
     }
     if (this.editing && !this.confirmingReset) setHidden(this.resetBtn, !a.custom);
   }
