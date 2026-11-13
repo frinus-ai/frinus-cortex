@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Frinus Office — instalador de 1 comando (Linux, WSL e macOS).
+# Frinus Córtex — instalador de 1 comando (Linux, WSL e macOS).
 #
-#   curl -fsSL https://github.com/frinus-ai/frinus-office/releases/latest/download/install.sh | bash
+#   curl -fsSL https://github.com/frinus-ai/frinus-cortex/releases/latest/download/install.sh | bash
 #
 # Publicado em cada release como "install.sh" (fonte: frinus/get.sh no repositório). Faz:
-#   1) baixa a versão PRONTA (já compilada) do Frinus Office para este sistema, confere o SHA-256 e coloca em
+#   1) baixa a versão PRONTA (já compilada) do Frinus Córtex para este sistema, confere o SHA-256 e coloca em
 #      ~/.local/share/frinus-office (troca atômica: numa atualização, a versão anterior só sai depois que a nova
 #      está completa; contas, conversas e configurações ficam em outras pastas e não são tocadas);
 #   2) chama o instalador de dentro da versão (frinus/install.sh --gui), que instala Node e Claude Code se
@@ -16,7 +16,7 @@
 #            FRINUS_OFFICE_DIR (pasta de instalação).
 set -euo pipefail
 
-REPO="frinus-ai/frinus-office"
+REPO="frinus-ai/frinus-cortex"
 APP_DIR="${FRINUS_OFFICE_DIR:-$HOME/.local/share/frinus-office}"
 VERSION="${FRINUS_OFFICE_VERSION:-latest}"
 
@@ -33,7 +33,7 @@ command -v tar  >/dev/null 2>&1 || fail "Preciso do 'tar'."
 case "$(uname -s)" in
   Linux)  os=linux ;;
   Darwin) os=darwin ;;
-  *) fail "Sistema não suportado: $(uname -s)." "No Windows, use o instalador Instalar-Frinus-Office.cmd." ;;
+  *) fail "Sistema não suportado: $(uname -s)." "No Windows, use o instalador Instalar-Frinus-Cortex.cmd." ;;
 esac
 case "$(uname -m)" in
   x86_64|amd64)  arch=x64 ;;
@@ -49,11 +49,11 @@ else
   base="https://github.com/$REPO/releases/download/$VERSION"
 fi
 
-say "Frinus Office — baixando a versão pronta ($os-$arch, $VERSION)"
+say "Frinus Córtex — baixando a versão pronta ($os-$arch, $VERSION)"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 curl -fL --retry 3 --progress-bar -o "$tmp/$asset" "$base/$asset" \
-  || fail "Não consegui baixar o Frinus Office." "Verifique sua internet e rode o mesmo comando de novo."
+  || fail "Não consegui baixar o Frinus Córtex." "Verifique sua internet e rode o mesmo comando de novo."
 curl -fsSL --retry 3 -o "$tmp/SHA256SUMS" "$base/SHA256SUMS" \
   || fail "Não consegui baixar a verificação do arquivo (SHA256SUMS)."
 

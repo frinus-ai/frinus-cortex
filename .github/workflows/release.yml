@@ -1,13 +1,13 @@
 name: Release
 
-# Publica uma versão do Frinus Office pronta para o cliente (nada é compilado na máquina dele).
+# Publica uma versão do Frinus Córtex pronta para o cliente (nada é compilado na máquina dele).
 # Disparo: push de tag vX.Y.Z (a versão do package.json precisa bater com a tag).
 #
 # Assets da release:
 #   frinus-office-<linux|darwin>-<x64|arm64>.tar.gz  versão compilada + node_modules de produção (node-pty nativo)
 #   SHA256SUMS                                       conferido pelo install.sh antes de instalar
 #   install.sh                                       = frinus/get.sh (curl ... | bash)
-#   Instalar-Frinus-Office.cmd                       Windows (WSL) — chama o setup.ps1 do frinus-mcp em modo office
+#   Instalar-Frinus-Cortex.cmd                       Windows (WSL) — chama o setup.ps1 do frinus-mcp em modo office
 on:
   push:
     tags: ['v*']
@@ -113,13 +113,13 @@ jobs:
       - name: Montar assets
         run: |
           cp frinus/get.sh out/install.sh
-          cp frinus/windows/Instalar-Frinus-Office.cmd out/Instalar-Frinus-Office.cmd
-          (cd out && sha256sum frinus-office-*.tar.gz install.sh Instalar-Frinus-Office.cmd > SHA256SUMS && cat SHA256SUMS)
+          cp frinus/windows/Instalar-Frinus-Cortex.cmd out/Instalar-Frinus-Cortex.cmd
+          (cd out && sha256sum frinus-office-*.tar.gz install.sh Instalar-Frinus-Cortex.cmd > SHA256SUMS && cat SHA256SUMS)
 
       - name: Publicar release
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" out/* --clobber
           else
-            gh release create "$TAG" out/* --title "Frinus Office $TAG" --generate-notes --latest
+            gh release create "$TAG" out/* --title "Frinus Córtex $TAG" --generate-notes --latest
           fi

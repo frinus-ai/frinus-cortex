@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# frinus-office-wsl — mantém o Frinus Office no ar dentro do WSL, chamado pelo Windows.
+# frinus-office-wsl — mantém o Frinus Córtex no ar dentro do WSL, chamado pelo Windows.
 #
 # O WSL desliga o Ubuntu quando nenhum programa do Windows o está usando (mesmo com systemd), então um serviço
-# "de fundo" não basta. O atalho "Frinus Office" e a entrada de Inicializar do Windows (criados pelo setup.ps1)
+# "de fundo" não basta. O atalho "Frinus Córtex" e a entrada de Inicializar do Windows (criados pelo setup.ps1)
 # rodam, escondido:  wsl.exe -d Ubuntu -- bash -lc '<app>/frinus/bin/frinus-office-wsl'
 # Esse wsl.exe fica vivo enquanto o escritório roda, e é ele que mantém o Ubuntu ligado.
 #

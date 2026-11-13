@@ -1,4 +1,4 @@
-# Frinus Office — perfil local-cliente (POC)
+# Frinus Córtex — perfil local-cliente (POC)
 
 Fork do [Habblaud](https://github.com/marmottajr/habblaud) (MIT, autor Márcio Junior)
 como interface visual do cliente Frinus, no lugar do terminal. Esta pasta reúne só o
@@ -27,7 +27,7 @@ O `install-office.sh` é **idempotente** (pode rodar de novo) e faz, nesta ordem
    `claude` não estiver no PATH;
 3. **serviço `systemd --user frinus-office`** na porta 4748 (`ExecStart` = `frinus/bin/frinus-office`).
    Não encosta no `habblaud.service` de produção (4747): nome, pasta e porta diferentes;
-4. **atalho `.desktop`** ("Frinus Office") que sobe o serviço e abre a tela no navegador
+4. **atalho `.desktop`** ("Frinus Córtex") que sobe o serviço e abre a tela no navegador
    (em WSL, via `wslview`/`powershell.exe`).
 
 Opções: `--skip-build`, `--skip-mod`, `--no-service`, `--no-desktop`, `--service <nome>` (nome
@@ -100,14 +100,14 @@ os hooks a descobrem em tempo de execução a partir do ambiente da sessão.
 - O plugin de mensagens (`mod/habblaud-mensagens/hooks/register.ts`) lê a porta só de
   `HABBLAUD_PORT` (`$.env.get('HABBLAUD_PORT')`), caindo em `4747`.
 
-O **Frinus Office injeta `HABBLAUD_PORT=4748`** em toda sessão que abre: o `office.env` exporta a
+O **Frinus Córtex injeta `HABBLAUD_PORT=4748`** em toda sessão que abre: o `office.env` exporta a
 variável e o servidor a repassa tanto ao terminal/PTY (`server/pty/manager.ts` — `HABBLAUD_PORT`
 não está em `INHERITED_SESSION_VARS`) quanto ao "Novo agente" em segundo plano (`server/spawn/spawn.ts`
 roda o `claude` herdando o ambiente do servidor). Logo, as sessões abertas pela 4748 falam com a 4748.
 
 **Coexistência com o Habblaud de produção (4747):** a MESMA instalação do mod serve os dois
 escritórios. Uma sessão aberta pelo `habblaud.service` (sem `HABBLAUD_PORT`, ou com 4747) fala com
-a 4747; uma sessão aberta pelo Frinus Office fala com a 4748. Nada é gravado por conta apontando
+a 4747; uma sessão aberta pelo Frinus Córtex fala com a 4748. Nada é gravado por conta apontando
 para uma porta só — por isso não há conflito e nada precisa ser reinstalado ao alternar.
 
 Instalar o mod nas contas com Frinus: `frinus/bin/install-office.sh` (passo 2, com `FRINUS_ONLY=1`),

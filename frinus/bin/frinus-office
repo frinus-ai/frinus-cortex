@@ -35,7 +35,7 @@ if [ ! -f "$root/dist/server/index.js" ]; then
   exit 1
 fi
 if ! frinus_node_ok; then
-  echo "frinus-office: precisa do Node 22.12 ou mais novo. Rode o instalador do Frinus Office de novo." >&2
+  echo "frinus-office: precisa do Node 22.12 ou mais novo. Rode o instalador do Frinus Córtex de novo." >&2
   exit 1
 fi
 

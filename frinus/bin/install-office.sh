@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install-office.sh — instala o Frinus Office (fork do Habblaud) em Linux, WSL e macOS.
+# install-office.sh — instala o Frinus Córtex (fork do Habblaud) em Linux, WSL e macOS.
 #
 # Idempotente: pode rodar de novo com segurança (atualiza o que mudou, não duplica nada).
 # Faz, nesta ordem:
@@ -12,8 +12,8 @@
 #        Windows (WSL)         -> quem cuida é o instalador do Windows (setup.ps1), que chama com --no-service:
 #                                 o WSL desliga quando nenhum programa do Windows o usa, então o escritório roda
 #                                 pelo atalho/inicialização do Windows (frinus/bin/frinus-office-wsl).
-#   4) atalho "Frinus Office" que sobe o escritório e abre a tela no navegador
-#      (Linux: .desktop no menu · macOS: "Frinus Office.command" na Mesa · Windows: criado pelo setup.ps1).
+#   4) atalho "Frinus Córtex" que sobe o escritório e abre a tela no navegador
+#      (Linux: .desktop no menu · macOS: "Frinus Córtex.command" na Mesa · Windows: criado pelo setup.ps1).
 #
 # Opções:
 #   --dry-run          mostra o que faria, sem build, sem mexer nas contas, sem serviço nem atalho
@@ -68,7 +68,7 @@ write_file() { # write_file <arquivo> <conteúdo>
   fi
 }
 
-say "Frinus Office — instalação ($OS; porta $PORT)"
+say "Frinus Córtex — instalação ($OS; porta $PORT)"
 [ "$DRY_RUN" = 1 ] && echo "   (dry-run: nada será alterado)"
 
 if ! frinus_node_ok; then
@@ -142,7 +142,7 @@ else
   unit_file="$HOME/.config/systemd/user/${SERVICE_NAME}.service"
   say "Serviço systemd --user: $SERVICE_NAME (porta $PORT)"
   write_file "$unit_file" "[Unit]
-Description=Frinus Office — escritório visual do cliente Frinus (fork do Habblaud)
+Description=Frinus Córtex — escritório visual do cliente Frinus (fork do Habblaud)
 After=network.target
 
 [Service]
@@ -169,14 +169,17 @@ icon="$root/dist/client/assets/brand/icon-512.png"
 if [ "$NO_DESKTOP" = 1 ]; then
   say "Atalho: pulado (--no-desktop)"
 elif [ "$OS" = wsl ]; then
-  say "Atalho: no Windows ele é criado pelo instalador do Windows (Frinus Office na área de trabalho)"
+  say "Atalho: no Windows ele é criado pelo instalador do Windows (Frinus Córtex na área de trabalho)"
 elif [ "$OS" = mac ]; then
-  cmd_file="$HOME/Desktop/Frinus Office.command"
-  say "Atalho na Mesa: Frinus Office"
+  cmd_file="$HOME/Desktop/Frinus Córtex.command"
+  # Rebrand: remove o atalho antigo "Frinus Office.command" para não ficar duplicado na Mesa.
+  old_cmd="$HOME/Desktop/Frinus Office.command"
+  [ -e "$old_cmd" ] && run rm -f "$old_cmd"
+  say "Atalho na Mesa: Frinus Córtex"
   write_file "$cmd_file" "#!/bin/bash
-# Frinus Office — abre o escritório no navegador (sobe o serviço se preciso).
+# Frinus Córtex — abre o escritório no navegador (sobe o serviço se preciso).
 HABBLAUD_PORT=$PORT '$here/frinus-office-open'
-osascript -e 'tell application \"Terminal\" to close (every window whose name contains \"Frinus Office\")' >/dev/null 2>&1 &
+osascript -e 'tell application \"Terminal\" to close (every window whose name contains \"Frinus Córtex\")' >/dev/null 2>&1 &
 exit 0
 "
   if [ "$DRY_RUN" != 1 ]; then
@@ -186,11 +189,11 @@ exit 0
   fi
 else
   desktop_file="$HOME/.local/share/applications/frinus-office.desktop"
-  say "Atalho no menu: Frinus Office"
+  say "Atalho no menu: Frinus Córtex"
   [ -f "$icon" ] || icon="applications-science"
   write_file "$desktop_file" "[Desktop Entry]
 Type=Application
-Name=Frinus Office
+Name=Frinus Córtex
 Comment=A Mente por Trás da sua IA — escritório visual dos agentes
 Exec=env HABBLAUD_PORT=$PORT FRINUS_OFFICE_SERVICE=$SERVICE_NAME $here/frinus-office-open
 Icon=$icon

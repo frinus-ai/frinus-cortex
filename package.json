@@ -1,14 +1,14 @@
 {
   "name": "frinus-office",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Frinus Office — escritório visual dos agentes do Frinus (fork do Habblaud, MIT).",
+  "description": "Frinus Córtex — escritório visual dos agentes do Frinus (fork do Habblaud, MIT).",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/frinus-ai/frinus-office.git"
+    "url": "git+https://github.com/frinus-ai/frinus-cortex.git"
   },
-  "homepage": "https://github.com/frinus-ai/frinus-office#readme",
+  "homepage": "https://github.com/frinus-ai/frinus-cortex#readme",
   "type": "module",
   "engines": {
     "node": ">=22.12"

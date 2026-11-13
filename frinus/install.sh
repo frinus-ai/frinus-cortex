@@ -10,7 +10,7 @@
 #      liga o MCP frinus-mcp no .claude.json da conta (~/.claude; ~/.claude-<apelido> com --alias),
 #      instala o comando "frinus" e a equipe.
 #      As DEMAIS contas entram depois pela própria interface (botão "Adicionar conta Frinus"), sem reinstalar.
-#   3) PERGUNTA se o cliente quer a INTERFACE GRÁFICA (Frinus Office). É OPCIONAL:
+#   3) PERGUNTA se o cliente quer a INTERFACE GRÁFICA (Frinus Córtex). É OPCIONAL:
 #        • SIM  -> tudo já vem ativado em 1 passo: build + mod/plugins em TODAS as contas Frinus + dados de uso +
 #                  serviço systemd --user na porta 4748 + atalho. O cliente NÃO ativa nada à mão.
 #        • NÃO  -> fica só o Frinus no terminal (comando "frinus").
@@ -174,7 +174,7 @@ frinus_load_node
 
 # --- 3) interface gráfica (OPCIONAL) -------------------------------------------------------------------------
 if [ -z "$GUI" ]; then
-  resp="$(ask 'Instalar a interface gráfica Frinus Office? Se sim, já vem tudo pronto e ativado. [s/N]:')"
+  resp="$(ask 'Instalar a interface gráfica Frinus Córtex? Se sim, já vem tudo pronto e ativado. [s/N]:')"
   case "$resp" in [sSyY]*) GUI=1 ;; *) GUI=0 ;; esac
 fi
 
@@ -212,9 +212,9 @@ if [ "$GUI" = 1 ]; then
     bash "$here/bin/install-office.sh" --service "$SERVICE_NAME"
   fi
   case "$OS" in
-    wsl) say "Pronto! No Windows, abra pelo atalho \"Frinus Office\" na área de trabalho." ;;
-    mac) say "Pronto! Abra pelo atalho \"Frinus Office\" na Mesa. Abrindo agora no navegador…" ;;
-    *)   say "Pronto! Abra pelo menu (\"Frinus Office\"). Abrindo agora no navegador…" ;;
+    wsl) say "Pronto! No Windows, abra pelo atalho \"Frinus Córtex\" na área de trabalho." ;;
+    mac) say "Pronto! Abra pelo atalho \"Frinus Córtex\" na Mesa. Abrindo agora no navegador…" ;;
+    *)   say "Pronto! Abra pelo menu (\"Frinus Córtex\"). Abrindo agora no navegador…" ;;
   esac
   echo "   Endereço: http://127.0.0.1:4748"
   echo "   Na primeira conversa, o Claude pede para entrar na sua conta Claude (abre o navegador)."

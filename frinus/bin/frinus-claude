@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# frinus-claude — lançador do Claude Code para o cliente Frinus (POC Frinus Office).
+# frinus-claude — lançador do Claude Code para o cliente Frinus (POC Frinus Córtex).
 #
 # Todo "Novo agente" do escritório nasce como o orquestrador `frinus`, com memória de
 # longo prazo. O Habblaud invoca este script como HABBLAUD_CLAUDE_BIN (ver

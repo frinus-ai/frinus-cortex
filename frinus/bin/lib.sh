@@ -1,4 +1,4 @@
-# lib.sh — funções comuns dos scripts do Frinus Office (carregado com ". lib.sh", não executar direto).
+# lib.sh — funções comuns dos scripts do Frinus Córtex (carregado com ". lib.sh", não executar direto).
 #
 # Por que existe: o serviço (systemd --user / launchd) e o atalho NÃO carregam o ~/.bashrc, então o `node` e o
 # `claude` instalados pelo nvm não estão no PATH deles. Na instalação gravamos a pasta do node em

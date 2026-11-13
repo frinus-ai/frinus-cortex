@@ -10,6 +10,29 @@ do meio (0.**3**.0).
 
 ## [Não lançado]
 
+> As versões abaixo com número `0.x` são do Frinus Córtex (distribuição ao cliente). As `1.x` acima são do
+> Habblaud, o motor de base, e ficam aqui como histórico do fork.
+
+## [0.2.0] - 2026-11-13
+
+### Mudado
+
+- **Frinus Office agora é Frinus Córtex.** Nome, cor (lavanda `#b79cff`) e identidade próprios na interface;
+  "Habblaud" aparece só em **Sobre**. O tema com o visual original do Habblaud passou a se chamar **Pixel**.
+  O seletor de conta ganhou a identidade Frinus.
+- **Instalador e distribuição renomeados.** O atalho/app passa a se chamar **"Frinus Córtex"** e o instalador do
+  Windows virou **`Instalar-Frinus-Cortex.cmd`**. As URLs apontam para `github.com/frinus-ai/frinus-cortex`.
+  Os caminhos internos de instalação e configuração (`~/.local/share/frinus-office`, `~/.frinus-office`, serviço
+  `frinus-office`, LaunchAgent `br.com.frinus.office`) **seguem iguais**, para não quebrar quem já instalou.
+  O instalador **substitui o atalho antigo "Frinus Office"** (no macOS remove o `Frinus Office.command` da Mesa;
+  no Linux reaproveita o mesmo `frinus-office.desktop`, trocando só o nome exibido).
+
+## [0.1.0] - 2026-11-11
+
+Primeira versão liberada para clientes: release pronta por sistema operacional (Linux x64/arm64, macOS arm64/x64)
+e instalador de um comando (`install.sh`, `Instalar-Frinus-Office.cmd`) que baixa a versão compilada, confere o
+SHA-256, cadastra a conta Frinus, liga a memória e instala o escritório, o início automático e o atalho.
+
 ## [1.0.3] - 2026-10-16
 
 ### Corrigido
