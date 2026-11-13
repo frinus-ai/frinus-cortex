@@ -119,73 +119,36 @@ export class UpdateToaster implements UiComponent {
 }
 
 /** Seção "Sobre" das configurações. */
+/** Painel do Frinus (onde fica o instalador do Córtex e a chave de acesso). */
+const FRINUS_PANEL_URL = 'https://frinus.rdxsec.com.br/integrations/frinus-cortex';
+
+/**
+ * Seção "Sobre" das configurações: o Frinus Córtex, a versão em uso e como atualizar. No Córtex a busca de versão
+ * nova no GitHub fica desligada (HABBLAUD_UPDATE_CHECK=0 no office.env): atualizar é rodar o instalador de novo.
+ */
 export class AboutGroup {
   readonly el: HTMLElement;
   private name: HTMLElement;
-  private status: HTMLElement;
-  private checkBtn: HTMLButtonElement;
-  private fresh: HTMLElement;
-  private notes: HTMLAnchorElement;
-  private repo: HTMLAnchorElement;
-  private checking = false;
-  private failure: string | undefined;
 
   constructor(private ctx: UiContext) {
     this.name = h('strong', { class: 'ui-about__version' });
-    this.checkBtn = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Verificar agora'), on: { click: () => void this.check() } });
-    this.status = h('p', { class: 'ui-about__status', role: 'status' });
-    this.notes = h('a', { class: 'ui-link-btn', attrs: { target: '_blank', rel: 'noopener noreferrer' } });
-    this.fresh = h(
-      'div',
-      { class: 'ui-about__new', hidden: true },
-      this.notes,
-      h(
-        'p',
-        { class: 'ui-set__hint' },
-        tr('Para atualizar, na pasta do Habblaud: '),
-        h('code', { class: 'ui-usage-setup__cmd', text: 'git pull' }),
-        tr(' e de novo '),
-        h('code', { class: 'ui-usage-setup__cmd', text: 'npm run docker:up' }),
-        tr(' (sem Docker: '),
-        h('code', { class: 'ui-usage-setup__cmd', text: 'npm run build && npm start' }),
-        ').',
-      ),
-    );
-    this.repo = h('a', { class: 'ui-link-btn', text: tr('Código no GitHub'), attrs: { target: '_blank', rel: 'noopener noreferrer' } });
+    const panel = h('a', { class: 'ui-link-btn', text: tr('Abrir o painel do Frinus'), attrs: { href: FRINUS_PANEL_URL, target: '_blank', rel: 'noopener noreferrer' } });
     this.el = h(
       'div',
       { class: 'ui-set-group ui-about', attrs: { id: 'ui-about' } },
       h('h3', { text: tr('Sobre'), tabIndex: -1 }),
-      h('div', { class: 'ui-about__head' }, h('span', { class: 'ui-about__name' }, 'Habblaud ', this.name), this.checkBtn),
-      this.status,
-      this.fresh,
-      this.repo,
+      h('div', { class: 'ui-about__head' }, h('span', { class: 'ui-about__name' }, 'Frinus Córtex ', this.name)),
+      h('p', { class: 'ui-set__hint', text: tr('A interface visual do Frinus: acompanhe seus agentes trabalhando e converse com o Frinus, com a memória da sua empresa, sem abrir o terminal.') }),
+      h('p', { class: 'ui-set__hint', text: tr('Para atualizar, baixe e rode de novo o instalador do Frinus Córtex no painel do Frinus (Integrações › Frinus Córtex). Suas conversas e configurações são mantidas.') }),
+      panel,
+      h('p', { class: 'ui-set__hint', text: tr('Frinus · RDX Security') }),
     );
   }
 
   render(): void {
     const info = versionInfo(this.ctx.store.liveSnapshot);
-    setHidden(this.el, !info);
-    if (!info) return;
-    const s = info.updates;
-    setText(this.name, `v${info.version}`);
-    const line = this.failure ? { tone: 'warn' as const, text: this.failure } : updateStatusLine(info.version, s, this.ctx.now());
-    setText(this.status, this.checking ? tr('Consultando o GitHub…') : line.text);
-    setVariant(this.status, 'is-', this.checking ? 'pending' : line.tone);
-    setHidden(this.checkBtn, !s || s.state === 'off');
-    this.checkBtn.disabled = this.checking || this.ctx.store.connection !== 'open';
-
-    const fresh = !!s?.available && !!s.latest;
-    setHidden(this.fresh, !fresh);
-    if (fresh) {
-      setText(this.notes, tr('Ver o que mudou na v{0}', [s!.latest]));
-      const url = safeGithubUrl(s!.url);
-      setHidden(this.notes, !url);
-      if (url) setAttr(this.notes, 'href', url);
-    }
-    const repoUrl = s?.repo ? safeGithubUrl(`https://github.com/${s.repo}`) : undefined;
-    setHidden(this.repo, !repoUrl);
-    if (repoUrl) setAttr(this.repo, 'href', repoUrl);
+    setHidden(this.name, !info);
+    if (info) setText(this.name, `v${info.version}`);
   }
 
   /** Rola até a seção e a destaca por um instante (clique no número da versão). */
@@ -194,21 +157,5 @@ export class AboutGroup {
     this.el.classList.remove('is-highlight');
     void this.el.offsetWidth;
     this.el.classList.add('is-highlight');
-  }
-
-  private async check(): Promise<void> {
-    if (this.checking) return;
-    this.checking = true;
-    this.failure = undefined;
-    this.render();
-    try {
-      if (!(await this.ctx.store.checkUpdates())) this.failure = tr('Não deu para falar com o servidor do Habblaud.');
-    } catch {
-      this.failure = tr('Não deu para falar com o servidor do Habblaud.');
-    } finally {
-      this.checking = false;
-      this.render();
-      this.ctx.invalidate();
-    }
   }
 }

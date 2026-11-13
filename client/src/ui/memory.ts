@@ -1,13 +1,12 @@
-// Busca na memória do Frinus (botão de lupa na barra do topo): uma janela com três abas —
-// "Buscar memória" (POST /api/frinus/memory/search), "Tarefas" (GET /api/frinus/tasks) e
-// "Saúde" (GET /api/frinus/health). O servidor fala com a Memory Engine usando a chave da conta
+// Busca na memória do Frinus (botão de lupa na barra do topo): uma janela com duas abas —
+// "Buscar memória" (POST /api/frinus/memory/search) e "Tarefas" (GET /api/frinus/tasks). O servidor fala com a Memory Engine usando a chave da conta
 // escolhida (frinus-mcp no .claude.json); a chave nunca chega ao navegador. Ver server/http/frinus.ts.
 import { intlLocale, tr } from '../../../shared/i18n';
 import type { UiContext } from './context';
 import { h, iconButton, setHidden, setText } from './dom';
 import { ICONS } from './icons';
 
-type TabId = 'search' | 'tasks' | 'health';
+type TabId = 'search' | 'tasks';
 
 interface AccountSummary {
   id: string;
@@ -33,15 +32,6 @@ interface TaskRow {
   status: string;
   priority: number;
   created_at: string | null;
-}
-
-interface HealthStats {
-  total_memories: number;
-  by_type: Record<string, number>;
-  by_layer: Record<string, number>;
-  recent_uploads: number;
-  gaps: number;
-  conflicts: number;
 }
 
 const LOCALE = intlLocale();
@@ -104,8 +94,6 @@ export class MemorySearchPanel {
   private readonly searchResults: HTMLElement;
   private readonly tasksStatus: HTMLElement;
   private readonly tasksList: HTMLElement;
-  private readonly healthStatus: HTMLElement;
-  private readonly healthBody: HTMLElement;
 
   constructor(private ctx: UiContext) {
     const close = iconButton(ICONS.close, tr('Fechar busca de memória'), () => this.el.close(), 'ui-icon-btn--sm');
@@ -127,7 +115,6 @@ export class MemorySearchPanel {
       { class: 'ui-mem-tabs', role: 'tablist', attrs: { 'aria-label': tr('Seções da memória') } },
       mkTab('search', tr('Buscar memória')),
       mkTab('tasks', tr('Tarefas')),
-      mkTab('health', tr('Saúde')),
     );
 
     // Conta (seletor quando há mais de uma; rótulo fixo quando só há uma)
@@ -174,11 +161,6 @@ export class MemorySearchPanel {
     this.tasksList = h('ul', { class: 'ui-mem-tasks' });
     this.panes.set('tasks', h('div', { class: 'ui-mem-pane', role: 'tabpanel' }, this.tasksStatus, this.tasksList));
 
-    // Aba Saúde
-    this.healthStatus = h('p', { class: 'ui-mem-status', attrs: { role: 'status', 'aria-live': 'polite' } });
-    this.healthBody = h('div', { class: 'ui-mem-health' });
-    this.panes.set('health', h('div', { class: 'ui-mem-pane', role: 'tabpanel' }, this.healthStatus, this.healthBody));
-
     this.el = h(
       'dialog',
       { class: 'ui-dialog ui-mem', attrs: { 'aria-labelledby': 'ui-mem-title' } },
@@ -189,7 +171,7 @@ export class MemorySearchPanel {
         close,
       ),
       h('div', { class: 'ui-mem-top' }, tabs, this.accountRow),
-      h('div', { class: 'ui-dialog__body ui-mem-body' }, this.panes.get('search')!, this.panes.get('tasks')!, this.panes.get('health')!),
+      h('div', { class: 'ui-dialog__body ui-mem-body' }, this.panes.get('search')!, this.panes.get('tasks')!),
     ) as HTMLDialogElement;
 
     this.el.addEventListener('close', () => {
@@ -224,7 +206,6 @@ export class MemorySearchPanel {
     this.syncTabs();
     if (id === 'search') this.searchInput.focus();
     else if (id === 'tasks') void this.loadTasks();
-    else if (id === 'health') void this.loadHealth();
   }
 
   private syncTabs(): void {
@@ -288,10 +269,8 @@ export class MemorySearchPanel {
     // Troca de conta: os resultados em tela são de outra conta; limpa para evitar confusão.
     this.searchResults.replaceChildren();
     this.tasksList.replaceChildren();
-    this.healthBody.replaceChildren();
     setText(this.searchStatus, '');
     setText(this.tasksStatus, '');
-    setText(this.healthStatus, '');
   }
 
   // ---------------------------------------------------------------- busca
@@ -367,39 +346,6 @@ export class MemorySearchPanel {
     );
     const date = shortDate(t.created_at);
     return h('li', { class: 'ui-mem-task' }, head, date ? h('span', { class: 'ui-mem-date', text: date }) : '');
-  }
-
-  // ---------------------------------------------------------------- saúde
-
-  private async loadHealth(): Promise<void> {
-    await this.ensureAccounts();
-    if (!this.accountId) {
-      this.setStatus(this.healthStatus, tr('nenhuma conta com chave do Frinus neste computador'), 'error');
-      return;
-    }
-    this.healthBody.replaceChildren();
-    this.setStatus(this.healthStatus, tr('carregando…'), 'busy');
-    try {
-      const r = await apiGet<HealthStats>(`/api/frinus/health?account=${encodeURIComponent(this.accountId)}`);
-      this.setStatus(this.healthStatus, tr('conectado à memória do Frinus.'), 'ok');
-      const stat = (label: string, value: string | number): HTMLElement =>
-        h('div', { class: 'ui-mem-stat' }, h('span', { class: 'ui-mem-stat__val', text: String(value) }), h('span', { class: 'ui-mem-stat__lbl', text: label }));
-      const grid = h('div', { class: 'ui-mem-stats' },
-        stat(tr('memórias'), r.total_memories),
-        stat(tr('recentes'), r.recent_uploads),
-        stat(tr('lacunas'), r.gaps),
-        stat(tr('conflitos'), r.conflicts),
-      );
-      this.healthBody.append(grid);
-      const byType = Object.entries(r.by_type || {});
-      if (byType.length) {
-        this.healthBody.append(
-          h('div', { class: 'ui-mem-bytype' }, ...byType.map(([t, n]) => h('span', { class: 'ui-mem-chip', text: `${typeLabel(t)}: ${n}` }))),
-        );
-      }
-    } catch (err) {
-      this.setStatus(this.healthStatus, this.errText(err), 'error');
-    }
   }
 
   // ---------------------------------------------------------------- utilidades

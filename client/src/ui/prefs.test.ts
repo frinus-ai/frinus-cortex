@@ -57,30 +57,21 @@ describe('preferências', () => {
     expect(worldOptionsFrom({ ...DEFAULT_PREFS, daylight: 'day' })).toEqual({ showNames: true, bubbles: 'important', liveliness: 'normal', dayNight: false, daylight: 'day', theme: 'frinus' });
     expect(worldOptionsFrom({ ...DEFAULT_PREFS, daylight: 'night' })).toMatchObject({ dayNight: true, daylight: 'night' });
   });
-  it('ciclo dia/noite: valida o modo e migra o interruptor antigo', () => {
-    expect(DEFAULT_PREFS.daylight).toBe('auto');
-    expect(sanitizePrefs({ daylight: 'night' }).daylight).toBe('night');
-    expect(sanitizePrefs({ daylight: 'meio-dia' }).daylight).toBe('auto');
-    expect(sanitizePrefs({ dayNight: false }).daylight).toBe('day');
-    expect(sanitizePrefs({ dayNight: true }).daylight).toBe('auto');
-    expect(sanitizePrefs({ dayNight: false, daylight: 'night' }).daylight).toBe('night');
-  });
-  it('temas: padrão Frinus "A Mente", preserva preferências e recupera valores inválidos', () => {
-    // Padrão deste fork: sem preferência salva vale o tema Frinus.
-    expect(DEFAULT_PREFS.theme).toBe('frinus');
-    expect(sanitizePrefs({ daylight: 'night' })).toMatchObject({ theme: 'frinus', daylight: 'night' });
-    expect(sanitizePrefs({ theme: 'invalid' }).theme).toBe('frinus');
+  it('Frinus Córtex: ciclo dia/noite, tema e sons ficam sempre no padrão (sem escolha nas Configurações)', () => {
+    expect(DEFAULT_PREFS).toMatchObject({ daylight: 'auto', theme: 'frinus', sound: false });
+    // Preferências salvas antes (tema Natal, sempre noite, sons ligados, interruptor antigo) voltam ao padrão.
+    expect(sanitizePrefs({ daylight: 'night', theme: 'christmas', sound: true })).toMatchObject({ daylight: 'auto', theme: 'frinus', sound: false });
+    expect(sanitizePrefs({ dayNight: false }).daylight).toBe('auto');
     for (const theme of ['frinus', 'christmas', 'halloween', 'none', 'auto'] as const) {
       const st = memoryStorage();
-      savePrefs(st, { ...DEFAULT_PREFS, theme });
-      expect(loadPrefs(st).theme).toBe(theme);
-      expect(worldOptionsFrom(loadPrefs(st)).theme).toBe(theme);
+      savePrefs(st, { ...DEFAULT_PREFS, theme, sound: true });
+      expect(loadPrefs(st)).toMatchObject({ theme: 'frinus', sound: false });
+      expect(worldOptionsFrom(loadPrefs(st)).theme).toBe('frinus');
     }
   });
-  it('sons: desligados por padrão; volume e categorias validados', () => {
-    expect(DEFAULT_PREFS.sound).toBe(false);
+  it('sons: volume e categorias validados', () => {
     const p = sanitizePrefs({ sound: true, sounds: { volume: 3, keys: false, elevator: 'sim' } });
-    expect(p.sound).toBe(true);
+    expect(p.sound).toBe(false);
     expect(p.sounds).toEqual({ volume: 1, alerts: true, keys: false, elevator: true, social: true });
     expect(sanitizePrefs({ sounds: { volume: -1 } }).sounds.volume).toBe(0);
     expect(sanitizePrefs({ sounds: 'alto' }).sounds).toEqual(DEFAULT_PREFS.sounds);

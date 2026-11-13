@@ -58,9 +58,11 @@ export function sanitizePrefs(raw: unknown): UiPrefs {
     bubbles: oneOf(o.bubbles, ['all', 'important', 'none'] as const, d.bubbles),
     liveliness: oneOf(o.liveliness, ['calm', 'normal', 'lively'] as const, d.liveliness),
     // preferências antigas: o interruptor "dia e noite" desligado vira "sempre dia"
-    daylight: oneOf(o.daylight, ['auto', 'day', 'night'] as const, o.dayNight === false ? 'day' : d.daylight),
-    theme: oneOf(o.theme, ['auto', 'none', 'christmas', 'halloween', 'frinus'] as const, d.theme),
-    sound: bool(o.sound, d.sound),
+    // Frinus Córtex: ciclo dia/noite, tema e sons não são escolhas do usuário (as Configurações não os mostram).
+    // Valem sempre o padrão — inclusive para quem tinha escolhido outro valor antes (ex.: tema Natal, sons ligados).
+    daylight: d.daylight,
+    theme: d.theme,
+    sound: d.sound,
     sounds: sanitizeSoundSettings(o.sounds),
     browserNotifications: bool(o.browserNotifications, d.browserNotifications),
     sidebarOpen: bool(o.sidebarOpen, d.sidebarOpen),
