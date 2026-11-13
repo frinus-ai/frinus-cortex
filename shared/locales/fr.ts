@@ -3355,6 +3355,14 @@ export const FR: Readonly<Record<string, string>> = {
 
   // Nova conversa: seletor de pasta nativo (client/src/ui/newchat.ts, server/http/frinus.ts)
   "Abrir o seletor de pastas do sistema": "Ouvrir le sélecteur de dossiers du système",
+  "Bypass completo (não pede permissão)": "Contournement complet (ne demande rien)",
+  "Auto (o Claude decide o que pedir)": "Auto (Claude décide quoi demander)",
+  "Aceitar edições (pede para comandos)": "Accepter les modifications (demande pour les commandes)",
+  "Planejar (só lê e propõe)": "Planifier (lecture seule, propose)",
+  "Pedir permissão para tudo": "Demander la permission pour tout",
+  "Modo de permissão": "Mode d'autorisation",
+  "Modo": "Mode",
+  "modo de permissão desconhecido": "mode d'autorisation inconnu",
   "Escolher…": "Choisir…",
   "Escolha a pasta na janela do sistema…": "Choisissez le dossier dans la fenêtre du système…",
   "Seletor de pastas indisponível aqui: digite o caminho.": "Sélecteur de dossiers indisponible ici : saisissez le chemin.",

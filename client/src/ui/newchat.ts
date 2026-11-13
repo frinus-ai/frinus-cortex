@@ -14,6 +14,16 @@ import { ICONS } from './icons';
 
 const FOLDER_KEY = 'frinus.newchat.folder';
 const ACCOUNT_KEY = 'frinus.newchat.account';
+const MODE_KEY = 'frinus.newchat.mode';
+/** Modos de permissão (os mesmos de server/pty/manager.ts PERMISSION_MODES). Bypass é o padrão, como nos aliases e no instalador. */
+const MODES: ReadonlyArray<{ id: string; label: () => string }> = [
+  { id: 'bypassPermissions', label: () => tr('Bypass completo (não pede permissão)') },
+  { id: 'auto', label: () => tr('Auto (o Claude decide o que pedir)') },
+  { id: 'acceptEdits', label: () => tr('Aceitar edições (pede para comandos)') },
+  { id: 'plan', label: () => tr('Planejar (só lê e propõe)') },
+  { id: 'default', label: () => tr('Pedir permissão para tudo') },
+];
+const DEFAULT_MODE = 'bypassPermissions';
 const FOLDER_ICON =
   '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 
@@ -57,6 +67,7 @@ export class NewChatPanel implements UiComponent {
   private readonly accountEmpty: HTMLElement;
   private readonly folderInput: HTMLInputElement;
   private readonly folderPick: HTMLButtonElement;
+  private readonly modeSelect: HTMLSelectElement;
   private picking = false;
   private readonly startBtn: HTMLButtonElement;
   private readonly startMsg: HTMLElement;
@@ -86,6 +97,11 @@ export class NewChatPanel implements UiComponent {
       folderIcon(),
       h('span', { text: tr('Escolher…') }),
     ) as HTMLButtonElement;
+    this.modeSelect = h(
+      'select',
+      { class: 'ui-mem-input ui-newchat__mode', attrs: { 'aria-label': tr('Modo de permissão') } },
+      ...MODES.map((m) => h('option', { text: m.label(), attrs: { value: m.id } })),
+    ) as HTMLSelectElement;
     this.startBtn = h('button', { class: 'ui-btn ui-btn--accent ui-newchat__start', type: 'button', text: tr('Começar conversa'), on: { click: () => void this.start() } }) as HTMLButtonElement;
     this.startMsg = h('p', { class: 'ui-mem-status', attrs: { role: 'status', 'aria-live': 'polite' } });
     this.disabledMsg = h('p', { class: 'ui-mem-status is-error', hidden: true });
@@ -101,6 +117,7 @@ export class NewChatPanel implements UiComponent {
         h('span', { class: 'ui-newchat__label', text: tr('Pasta') }),
         h('div', { class: 'ui-newchat__folder' }, this.folderInput, this.folderPick),
       ),
+      h('label', { class: 'ui-newchat__field' }, h('span', { class: 'ui-newchat__label', text: tr('Modo') }), this.modeSelect),
       h('div', { class: 'ui-newchat__actions' }, this.startBtn),
       this.startMsg,
       this.disabledMsg,
@@ -215,6 +232,10 @@ export class NewChatPanel implements UiComponent {
       if (focused) (this.accountList.querySelector('[aria-checked="true"]') as HTMLElement | null)?.focus();
     }
     setHidden(this.accountEmpty, accts.length > 0);
+    if (reset) {
+      const mode = readPref(MODE_KEY);
+      this.modeSelect.value = MODES.some((m) => m.id === mode) ? mode : DEFAULT_MODE;
+    }
     if (reset && !this.folderInput.value) {
       const home = this.ctx.store.snapshot?.meta.home;
       this.folderInput.value = readPref(FOLDER_KEY) || (home ? `${home.replace(/\/+$/, '')}/Frinus` : '');
@@ -229,6 +250,7 @@ export class NewChatPanel implements UiComponent {
     this.startBtn.disabled = this.busy || !enabled || !hasAccount;
     setHidden(this.accountList, !hasAccount);
     this.folderPick.disabled = this.picking || this.busy;
+    this.modeSelect.disabled = this.busy;
     setText(this.disabledMsg, enabled ? '' : tr('O terminal interativo está desligado neste escritório.'));
     setHidden(this.disabledMsg, enabled);
   }
@@ -237,15 +259,17 @@ export class NewChatPanel implements UiComponent {
     if (this.busy) return;
     const account = this.accountValue;
     const folder = this.folderInput.value.trim();
+    const mode = this.modeSelect.value || DEFAULT_MODE;
     if (!account) return this.say(this.startMsg, tr('Escolha uma conta.'), true);
     if (!folder) return this.say(this.startMsg, tr('Informe a pasta (caminho absoluto, ex.: /home/voce/Frinus).'), true);
     this.busy = true;
     this.render();
     this.say(this.startMsg, tr('Abrindo…'), false);
     try {
-      await this.ctx.terminals?.newSession(folder, account);
+      await this.ctx.terminals?.newSession(folder, account, mode);
       writePref(FOLDER_KEY, folder);
       writePref(ACCOUNT_KEY, account);
+      writePref(MODE_KEY, mode);
       this.el.close();
     } catch (err) {
       this.say(this.startMsg, tr('Não deu: {0}', [(err as Error).message]), true);

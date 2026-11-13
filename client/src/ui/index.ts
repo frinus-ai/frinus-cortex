@@ -198,7 +198,7 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
     get interactiveEnabled() {
       return pty.enabled;
     },
-    newSession: (cwd, account) => pty.newSession(cwd, account),
+    newSession: (cwd, account, mode) => pty.newSession(cwd, account, mode),
     open(id, opener) {
       const readOnly = !!store.snapshot?.meta.terminal && !store.replaying;
       if (pty.ptyOf(id) || (pty.enabled && !readOnly && ctx.agent(id)?.kind === 'main')) pty.openAgent(id);

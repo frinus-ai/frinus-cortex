@@ -27,7 +27,7 @@ export interface TerminalRouter {
   /** Terminal interativo ligado (abrir sessões novas, assumir, encerrar). */
   readonly interactiveEnabled: boolean;
   /** Sessão nova do Claude Code na pasta, aberta no terminal interativo. */
-  newSession(cwd: string, account?: string): Promise<void>;
+  newSession(cwd: string, account?: string, mode?: string): Promise<void>;
 }
 
 export type HelpSection = 'usage' | 'codex';

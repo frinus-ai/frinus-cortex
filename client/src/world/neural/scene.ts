@@ -130,6 +130,10 @@ export class NeuralScene {
   // ---------------------------------------------------------------- layout
 
   layout(sim: Sim, now: number): void {
+    // Aqui não há corredor nem elevador: a coreografia de saída do prédio (andar até o elevador → remove)
+    // nunca termina, porque place() reescreve ch.x/ch.y a cada frame. Quem está saindo some na hora
+    // (o sim.update seguinte remove e libera os spots); senão a sessão fechada no terminal vira fantasma.
+    for (const ch of sim.chars.values()) if (ch.leaving) ch.gone = true;
     this.regions.clear();
     const still = reducedMotion();
     const spin = still ? 0 : now / 11000;

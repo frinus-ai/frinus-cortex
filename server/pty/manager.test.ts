@@ -364,3 +364,32 @@ describe('carregar o node-pty e achar o claude', () => {
     }),
   );
 });
+
+describe('PtyManager: modo de permissão', () => {
+  it('sem modo e sem padrão: nenhum flag (o padrão do Claude Code)', () => {
+    const s = setup();
+    s.manager.create({ cwd: tmpdir() });
+    expect(s.spawned[0].args).toEqual([]);
+  });
+
+  it('bypass vira --dangerously-skip-permissions (como os aliases); os outros, --permission-mode', () => {
+    const s = setup();
+    s.manager.create({ cwd: tmpdir(), mode: 'bypassPermissions' });
+    s.manager.create({ cwd: tmpdir(), mode: 'auto' });
+    s.manager.create({ cwd: tmpdir(), mode: 'default' });
+    expect(s.spawned.map((p) => p.args)).toEqual([['--dangerously-skip-permissions'], ['--permission-mode', 'auto'], []]);
+  });
+
+  it('o padrão do escritório vale na sessão nova sem modo e ao assumir (antes do --resume)', async () => {
+    const s = setup({ defaultPermissionMode: 'bypassPermissions' });
+    s.manager.create({ cwd: tmpdir() });
+    await s.manager.takeover(`acc:${PID}`);
+    expect(s.spawned.map((p) => p.args)).toEqual([['--dangerously-skip-permissions'], ['--dangerously-skip-permissions', '--resume', SESSION]]);
+  });
+
+  it('recusa modo desconhecido (nada de flag arbitrário na linha de comando)', () => {
+    const s = setup();
+    expect(() => s.manager.create({ cwd: tmpdir(), mode: '--evil' })).toThrow(/modo de permissão/);
+    expect(s.spawned).toEqual([]);
+  });
+});
