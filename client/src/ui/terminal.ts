@@ -38,6 +38,9 @@ import {
 import { createAccountChip, createProviderTag, updateAccountChip, updateProviderTag } from './widgets';
 import { intlLocale, tr } from '../../../shared/i18n';
 
+/** A sessão ao vivo encerrou: o painel mostra "Sessão encerrada" por um instante e fecha sozinho (igual ao ui/pty.ts). */
+const AUTO_CLOSE_MS = 1_500;
+
 /** Máximo de itens no DOM: os mais antigos saem primeiro. */
 export const TERMINAL_DOM_LIMIT = 1500;
 /** Linhas do resultado visíveis antes do "… +N linhas". */
@@ -593,6 +596,8 @@ export class TerminalPanel implements UiComponent, TerminalControl {
   /** Sessão do histórico aberta no painel (null = terminal de um agente). */
   private session: RecentSession | null = null;
   private last: AgentInfo | null = null;
+  /** Fechamento automático agendado (a sessão ao vivo encerrou). */
+  private autoClose: ReturnType<typeof setTimeout> | null = null;
   private source: EventSource | null = null;
   private opener: HTMLElement | null = null;
   private conn: ConnState = 'connecting';
@@ -784,6 +789,8 @@ export class TerminalPanel implements UiComponent, TerminalControl {
   }
 
   close(): void {
+    if (this.autoClose) clearTimeout(this.autoClose);
+    this.autoClose = null;
     if (this.id === null) return;
     this.disconnect();
     this.stopSpinner();
@@ -818,12 +825,24 @@ export class TerminalPanel implements UiComponent, TerminalControl {
     if (this.session) this.renderSessionHead(this.session);
     else this.renderAgentHead();
     const live = this.session ? null : (this.ctx.agent(this.id) ?? null);
+    // Sessão ao vivo encerrada (principal offline ou já fora do córtex): mostra "Sessão encerrada" e fecha sozinho.
+    if (!this.session && (live?.status === 'offline' || (!live && this.last))) this.scheduleAutoClose(this.id);
     this.actions?.render(live);
     this.tabs.render(live ? live.id : null);
     this.renderFooter();
     this.renderState();
     // Mensagens só para a sessão ao vivo (no histórico, a caixa diz que a sessão foi encerrada).
     this.composer.render(this.session ? undefined : this.ctx.agent(this.id), this.id);
+  }
+
+  private scheduleAutoClose(id: string): void {
+    if (this.autoClose) return;
+    this.autoClose = setTimeout(() => {
+      this.autoClose = null;
+      if (this.id !== id || this.session) return;
+      const a = this.ctx.agent(id);
+      if (!a || a.status === 'offline') this.close();
+    }, AUTO_CLOSE_MS);
   }
 
   /** Abre o painel numa conversa nova (agente ou sessão do histórico); a mesma conversa só recebe o foco. */

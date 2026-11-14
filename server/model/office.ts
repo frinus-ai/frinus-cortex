@@ -974,7 +974,14 @@ export class Office {
     const entries = new Map(this.rooms);
     for (const r of this.demoSnap?.rooms ?? []) entries.set(r.id, { path: r.path, createdAt: r.createdAt });
     this.slots.sync(entries.keys(), now);
+    // Sala cujos agentes já encerraram (todos offline, no período de graça) sai da lista na hora: offline não
+    // aparece na tela, então ela ficaria vazia por ~20 s (inclusive recarregando a página). A vaga continua
+    // reservada pelo SlotAllocator; se a sessão voltar dentro da graça, a sala reaparece no mesmo lugar.
+    const alive = new Set<string>();
+    for (const r of this.agents.values()) if (r.info.status !== 'offline') alive.add(r.info.roomId);
+    for (const r of this.demoSnap?.rooms ?? []) alive.add(r.id);
     const rooms: RoomInfo[] = [...entries]
+      .filter(([id]) => alive.has(id))
       .map(([id, r]) => ({
         id,
         name: this.roomName(id),

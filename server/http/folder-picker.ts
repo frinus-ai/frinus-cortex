@@ -21,9 +21,9 @@ interface PickerCommand {
 /** O usuário tem até 10 min para escolher; depois o diálogo é encerrado. */
 const PICK_TIMEOUT_MS = 10 * 60_000;
 
-function run(file: string, args: string[], timeout = PICK_TIMEOUT_MS): Promise<{ code: number; out: string }> {
+function run(file: string, args: string[], timeout = PICK_TIMEOUT_MS, env?: NodeJS.ProcessEnv): Promise<{ code: number; out: string }> {
   return new Promise((done) => {
-    execFile(file, args, { timeout, windowsHide: true, maxBuffer: 64 * 1024 }, (err, stdout) => {
+    execFile(file, args, { timeout, windowsHide: true, maxBuffer: 64 * 1024, env }, (err, stdout) => {
       const code = err ? (typeof (err as { code?: unknown }).code === 'number' ? ((err as { code: number }).code) : -1) : 0;
       done({ code, out: String(stdout ?? '') });
     });
@@ -92,6 +92,36 @@ export function pickerCommand(startDir: string, env: { platform: NodeJS.Platform
   return null;
 }
 
+/** Variáveis da sessão gráfica que o diálogo precisa para abrir na tela do usuário. */
+const GRAPHICAL_VARS = ['DISPLAY', 'WAYLAND_DISPLAY', 'XAUTHORITY', 'DBUS_SESSION_BUS_ADDRESS', 'XDG_RUNTIME_DIR'] as const;
+
+/** Lê a saída de `systemctl --user show-environment` (linhas VAR=valor) só com as variáveis gráficas. Exportado para teste. */
+export function parseGraphicalEnv(out: string): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const line of out.split('\n')) {
+    const i = line.indexOf('=');
+    if (i <= 0) continue;
+    const key = line.slice(0, i);
+    if ((GRAPHICAL_VARS as readonly string[]).includes(key)) env[key] = line.slice(i + 1).trim();
+  }
+  return env;
+}
+
+/**
+ * Ambiente para o diálogo. Quando o serviço systemd do usuário sobe no boot, antes do login gráfico, o processo
+ * nasce sem DISPLAY/WAYLAND_DISPLAY — o desktop só os publica no gerenciador depois. Então, se faltarem aqui,
+ * busca na hora do clique o que o `systemd --user` sabe agora.
+ */
+async function graphicalEnv(): Promise<NodeJS.ProcessEnv> {
+  const env = { ...process.env };
+  if (process.platform !== 'linux' || env.DISPLAY || env.WAYLAND_DISPLAY) return env;
+  const r = await run('systemctl', ['--user', 'show-environment'], 5_000);
+  if (r.code === 0) {
+    for (const [k, v] of Object.entries(parseGraphicalEnv(r.out))) if (!env[k]) env[k] = v;
+  }
+  return env;
+}
+
 /** Só um diálogo por vez (dois cliques não abrem duas janelas). */
 let inFlight: Promise<PickResult> | null = null;
 
@@ -100,15 +130,16 @@ export function pickFolder(startDir: string | undefined, home: string): Promise<
   if (inFlight) return inFlight;
   const expanded = startDir?.replace(/^~(?=$|\/)/, home);
   const start = expanded && isDir(expanded) ? expanded : home;
-  const cmd = pickerCommand(start, {
-    platform: process.platform,
-    wsl: isWsl(),
-    has: onPath,
-    graphical: !!(process.env.DISPLAY || process.env.WAYLAND_DISPLAY),
-  });
-  if (!cmd) return Promise.resolve({ kind: 'unavailable' });
   inFlight = (async (): Promise<PickResult> => {
-    const r = await run(cmd.file, cmd.args);
+    const env = await graphicalEnv();
+    const cmd = pickerCommand(start, {
+      platform: process.platform,
+      wsl: isWsl(),
+      has: onPath,
+      graphical: !!(env.DISPLAY || env.WAYLAND_DISPLAY),
+    });
+    if (!cmd) return { kind: 'unavailable' };
+    const r = await run(cmd.file, cmd.args, PICK_TIMEOUT_MS, env);
     // 1 = cancelado (zenity/kdialog/PowerShell); osascript cancela com código 1 também.
     if (r.code !== 0) return r.code === 1 ? { kind: 'cancelled' } : { kind: 'unavailable' };
     let path = r.out.replace(/\r?\n$/, '').trim();
