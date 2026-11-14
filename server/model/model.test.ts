@@ -471,6 +471,20 @@ describe('Office', () => {
     expect(snap.rooms).toEqual([]);
   });
 
+  it('sala sem ninguém ativo sai da lista na hora (sem esperar a graça) e volta na mesma vaga se a sessão voltar', () => {
+    const { office, now } = makeOffice();
+    office.addMain({ id: 'acc:1', account: 'acc', sessionId: 's1', cwd: '/p/a', role: 'x', startedAt: now(), status: 'working' });
+    office.addMain({ id: 'acc:2', account: 'acc', sessionId: 's2', cwd: '/p/b', role: 'x', startedAt: now(), status: 'idle' });
+    const slot = office.commit().snapshot.rooms.find((r) => r.path === '/p/a')!.slot;
+    office.closeMain('acc:1');
+    let snap = office.commit().snapshot;
+    expect(snap.agents.find((a) => a.id === 'acc:1')?.status).toBe('offline');
+    expect(snap.rooms.map((r) => r.path)).toEqual(['/p/b']);
+    office.addMain({ id: 'acc:1', account: 'acc', sessionId: 's1', cwd: '/p/a', role: 'x', startedAt: now(), status: 'working' });
+    snap = office.commit().snapshot;
+    expect(snap.rooms.find((r) => r.path === '/p/a')?.slot).toBe(slot);
+  });
+
   it('demo misturado: salas no mesmo alocador, contas próprias e liga/desliga', () => {
     const { office, now } = makeOffice();
     office.addMain({ id: 'acc:1', account: 'acc', sessionId: 's1', cwd: '/p/real', role: 'x', startedAt: now(), status: 'idle' });

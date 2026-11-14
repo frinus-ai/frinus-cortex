@@ -162,6 +162,7 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
     openHelp: (section) => help.open(section),
     toggleSettings: () => settings.toggle(topbar.settingsBtn),
     toggleMemory: () => memory.toggle(topbar.memoryBtn),
+    openNewChat: (opener) => topbar.openNewChat(opener),
     toggleWorld: () => worldDialog.toggle(topbar.worldBtn),
     openAbout: () => settings.showAbout(topbar.settingsBtn),
     toggleTimelapse() {

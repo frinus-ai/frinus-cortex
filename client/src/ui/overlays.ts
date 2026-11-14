@@ -75,8 +75,7 @@ export function officeIsEmpty(ctx: UiContext): boolean {
 export class EmptyState implements UiComponent {
   readonly el: HTMLElement;
   private hint: HTMLElement;
-  private demoBtn: HTMLButtonElement;
-  private busy = false;
+  private newChatBtn: HTMLButtonElement;
 
   constructor(private ctx: UiContext) {
     const art = h('div', { class: 'ui-empty__art', attrs: { 'aria-hidden': 'true' } });
@@ -95,14 +94,20 @@ export class EmptyState implements UiComponent {
     });
     art.append(img);
     this.hint = h('p', { class: 'ui-empty__text' });
-    this.demoBtn = h('button', { class: 'ui-btn ui-btn--primary', type: 'button', text: tr('Ver demonstração'), on: { click: () => void this.startDemo() } });
+    // Sem nada acontecendo, o convite é começar uma conversa (nada de demonstração).
+    this.newChatBtn = h('button', {
+      class: 'ui-btn ui-btn--primary',
+      type: 'button',
+      text: tr('Nova conversa com o Frinus'),
+      on: { click: () => this.ctx.openNewChat(this.newChatBtn) },
+    }) as HTMLButtonElement;
     this.el = h(
       'section',
       { class: 'ui-empty', hidden: true, attrs: { 'aria-labelledby': 'ui-empty-title' } },
       art,
       h('h2', { class: 'ui-empty__title', text: tr('O córtex está vazio'), attrs: { id: 'ui-empty-title' } }),
       this.hint,
-      this.demoBtn,
+      this.newChatBtn,
     );
   }
 
@@ -113,22 +118,7 @@ export class EmptyState implements UiComponent {
     setHidden(this.el, !show);
     if (!show || !snap) return;
     setText(this.hint, emptyOfficeHint(snap.accounts));
-    this.demoBtn.disabled = this.busy;
-    setHidden(this.demoBtn, store.mock);
-  }
-
-  private async startDemo(): Promise<void> {
-    this.busy = true;
-    this.ctx.invalidate();
-    try {
-      const ok = await this.ctx.store.setDemo(true);
-      if (!ok) this.ctx.announce(tr('Não foi possível ligar a demonstração.'));
-    } catch {
-      this.ctx.announce(tr('Não foi possível falar com o servidor.'));
-    } finally {
-      this.busy = false;
-      this.ctx.invalidate();
-    }
+    setHidden(this.newChatBtn, store.mock);
   }
 }
 

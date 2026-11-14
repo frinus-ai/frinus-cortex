@@ -4,7 +4,7 @@
 // esta janela só mostra o aviso de "em outro terminal" quando o terminal ao vivo está desligado. As abas trocam
 // entre os agentes do mesmo projeto; as duas janelas se revezam no mesmo lugar.
 // As teclas não vazam para os atalhos do escritório (T, P, M, Esc...): Esc, por exemplo, interrompe o Claude.
-// Fechar a janela não encerra a sessão; "Encerrar" encerra.
+// Fechar a janela não encerra a sessão; "Encerrar" encerra (e a janela fecha sozinha logo depois).
 import type { AgentInfo, PtyInfo } from '../../../shared/types';
 import type { UiComponent, UiContext } from './context';
 import { h, iconButton, setHidden, setText } from './dom';
@@ -36,6 +36,9 @@ export interface PtyControl {
   stop(agentId: string): Promise<void>;
 }
 
+/** Depois que o Claude Code encerra, a janela mostra "encerrado" por um instante e fecha sozinha. */
+export const AUTO_CLOSE_MS = 1_500;
+
 export class PtyPanel implements UiComponent, PtyControl {
   readonly el: HTMLElement;
   private pane: PtyPane | null = null;
@@ -57,6 +60,8 @@ export class PtyPanel implements UiComponent, PtyControl {
   onShow: (() => void) | null = null;
   /** Agente a selecionar quando aparecer no snapshot (sessão recém-aberta ou assumida). */
   private pendingSelect: string | null = null;
+  /** Fechamento automático agendado (sessão encerrada). */
+  private autoClose: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private ctx: UiContext) {
     const icon = h('span', { class: 'ui-term__icon', attrs: { 'aria-hidden': 'true' } });
@@ -122,6 +127,7 @@ export class PtyPanel implements UiComponent, PtyControl {
   openAgent(agentId: string): void {
     const p = this.ptyOf(agentId);
     if (p) return this.show(p);
+    this.cancelAutoClose();
     this.pane?.detach();
     this.info = null;
     this.external = agentId;
@@ -131,6 +137,7 @@ export class PtyPanel implements UiComponent, PtyControl {
   }
 
   close(): void {
+    this.cancelAutoClose();
     if (!this.isOpen) return;
     this.pane?.detach();
     this.info = null;
@@ -171,6 +178,7 @@ export class PtyPanel implements UiComponent, PtyControl {
     updateAccountChip(this.accEl, this.ctx.account(cur.account), cur.account);
     setText(this.roomEl, agent?.title ?? cur.cwd);
     const ended = cur.exitedAt !== undefined;
+    if (ended) this.scheduleAutoClose(cur.id);
     setText(this.stateEl, ended ? tr('encerrado') : agent ? '' : cur.resumed ? tr('retomando…') : tr('iniciando…'));
     this.actions.withTakeover = false;
     this.actions.render(ended ? null : (agent ?? null));
@@ -197,6 +205,20 @@ export class PtyPanel implements UiComponent, PtyControl {
     this.setMode(true);
   }
 
+  private scheduleAutoClose(ptyId: string): void {
+    if (this.autoClose) return;
+    this.autoClose = setTimeout(() => {
+      this.autoClose = null;
+      // Ainda é a mesma sessão encerrada na janela (o usuário não trocou de aba nem abriu outra).
+      if (this.info?.id === ptyId && this.info.exitedAt !== undefined) this.close();
+    }, AUTO_CLOSE_MS);
+  }
+
+  private cancelAutoClose(): void {
+    if (this.autoClose) clearTimeout(this.autoClose);
+    this.autoClose = null;
+  }
+
   private setMode(away: boolean): void {
     setHidden(this.away, !away);
     setHidden(this.screen, away);
@@ -210,6 +232,7 @@ export class PtyPanel implements UiComponent, PtyControl {
   }
 
   private show(p: PtyInfo, fresh = false): void {
+    this.cancelAutoClose();
     this.info = p;
     this.external = null;
     if (fresh) this.pendingSelect = p.agentId;

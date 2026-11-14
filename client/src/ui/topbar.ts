@@ -53,6 +53,11 @@ export class TopBar implements UiComponent {
   /** Botão em destaque "Nova conversa com o Frinus" + a janela que ele abre (conta + pasta, ou adicionar conta). */
   private readonly newChatBtn: HTMLButtonElement;
   private readonly newChatPanel: NewChatPanel;
+
+  /** Abre a Nova conversa (também usado pelo cartão do córtex vazio). */
+  openNewChat(opener?: HTMLElement | null): void {
+    this.newChatPanel.open(opener ?? this.newChatBtn);
+  }
   /** Grupo dos botões de painéis (feed, Habblaud World, configurações, ajuda); o histórico entra aqui (ui/index.ts). */
   readonly panelGroup: HTMLElement;
 
