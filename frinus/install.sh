@@ -25,7 +25,7 @@
 #   --dictation          instala também o ditado por voz (whisper local, ~150 MB; desligado por padrão)
 #   --no-dictation       (padrão) não instala o ditado
 #   --mcp-install <path> caminho do install.sh do frinus-mcp (senão procura ao lado do repo / na variável / baixa)
-#   --service <nome>     nome do serviço systemd da interface (padrão: frinus-office)
+#   --service <nome>     nome do serviço systemd da interface (padrão: frinus-cortex)
 #   -h, --help           esta ajuda
 set -euo pipefail
 
@@ -33,7 +33,7 @@ DRY_RUN=0
 ALIAS=""
 GUI=""            # "", "1" (sim) ou "0" (não)
 MCP_INSTALL=""
-SERVICE_NAME=frinus-office
+SERVICE_NAME=frinus-cortex
 DICTATION=0       # ditado por voz (whisper local); --dictation liga (pesado: compila whisper.cpp + modelo ~150 MB)
 
 while [ $# -gt 0 ]; do
@@ -53,7 +53,7 @@ while [ $# -gt 0 ]; do
 done
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"     # .../frinus
-root="$(cd "$here/.." && pwd)"                            # .../frinus-office
+root="$(cd "$here/.." && pwd)"                            # .../frinus-cortex
 
 # shellcheck disable=SC1091
 . "$here/bin/lib.sh"
@@ -203,13 +203,13 @@ if [ "$GUI" = 1 ]; then
     fi
   fi
   say "Interface gráfica: instalando e ATIVANDO tudo (nada a configurar à mão)"
-  # install-office.sh já faz: build + FRINUS_ONLY mod:install (mod/plugins + uso em TODAS as contas Frinus) +
-  # início automático na 4748 + atalho (Linux/macOS; no WSL, pelo Windows). Com o uso lido de ~/.habblaud/usage (office.env), o cartão de cada
+  # install-cortex.sh já faz: build + FRINUS_ONLY mod:install (mod/plugins + uso em TODAS as contas Frinus) +
+  # início automático na 4748 + atalho (Linux/macOS; no WSL, pelo Windows). Com o uso lido de ~/.habblaud/usage (cortex.env), o cartão de cada
   # conta mostra o consumo sem "Como ativar".
   if [ "$DRY_RUN" = 1 ]; then
-    run bash "$here/bin/install-office.sh" --dry-run --service "$SERVICE_NAME"
+    run bash "$here/bin/install-cortex.sh" --dry-run --service "$SERVICE_NAME"
   else
-    bash "$here/bin/install-office.sh" --service "$SERVICE_NAME"
+    bash "$here/bin/install-cortex.sh" --service "$SERVICE_NAME"
   fi
   case "$OS" in
     wsl) say "Pronto! No Windows, abra pelo atalho \"Frinus Córtex\" na área de trabalho." ;;
@@ -220,7 +220,7 @@ if [ "$GUI" = 1 ]; then
   echo "   Na primeira conversa, o Claude pede para entrar na sua conta Claude (abre o navegador)."
   # Abre a tela (melhor esforço). No WSL quem abre é o instalador do Windows.
   if [ "$DRY_RUN" != 1 ] && [ "$OS" != wsl ] && [ "${FRINUS_NO_OPEN:-}" != 1 ]; then
-    "$here/bin/frinus-office-open" >/dev/null 2>&1 || true
+    "$here/bin/frinus-cortex-open" >/dev/null 2>&1 || true
   fi
 else
   say "Pronto! Só o Frinus no terminal."

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# frinus-cortex-open — garante o Frinus Córtex no ar e abre a tela no navegador.
+#
+# Usado pelos atalhos (Linux .desktop, macOS .command). Se o Córtex não responde, sobe pelo serviço
+# (systemd --user / LaunchAgent) e, sem serviço, em segundo plano direto; espera a porta e abre
+# http://127.0.0.1:<porta> no navegador padrão. Em WSL usa wslview (ou powershell.exe) para abrir no Windows.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+port="${HABBLAUD_PORT:-4748}"
+url="http://127.0.0.1:${port}"
+# Nome do serviço: FRINUS_CORTEX_SERVICE (FRINUS_OFFICE_SERVICE: legado); padrão frinus-cortex.
+service="${FRINUS_CORTEX_SERVICE:-${FRINUS_OFFICE_SERVICE:-frinus-cortex}}"
+
+up() { curl -fsS -o /dev/null --max-time 2 "${url}/api/health" 2>/dev/null; }
+
+if ! up; then
+  if [ "$(uname -s)" = Darwin ] && launchctl print "gui/$(id -u)/br.com.frinus.cortex" >/dev/null 2>&1; then
+    launchctl kickstart "gui/$(id -u)/br.com.frinus.cortex" >/dev/null 2>&1 || true
+  elif command -v systemctl >/dev/null 2>&1 && systemctl --user cat "${service}.service" >/dev/null 2>&1; then
+    systemctl --user start "${service}.service" 2>/dev/null || true
+  else
+    log="${HABBLAUD_DATA_DIR:-$HOME/.frinus-cortex}/cortex.log"
+    mkdir -p "$(dirname "$log")"
+    nohup "$here/frinus-cortex" >>"$log" 2>&1 &
+  fi
+  # Espera a porta responder (até ~20s); segue mesmo se não subir (o navegador mostra o erro).
+  for _ in $(seq 1 40); do up && break; sleep 0.5; done
+fi
+
+# Abre no navegador com o que existir.
+if grep -qi microsoft /proc/version 2>/dev/null; then
+  if command -v wslview >/dev/null 2>&1; then exec wslview "$url"; fi
+  if command -v powershell.exe >/dev/null 2>&1; then exec powershell.exe -NoProfile Start-Process "$url"; fi
+fi
+for opener in xdg-open gio open; do
+  if command -v "$opener" >/dev/null 2>&1; then exec "$opener" "$url"; fi
+done
+echo "Abra no navegador: $url"

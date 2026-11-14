@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# frinus-claude — lançador do Claude Code para o cliente Frinus (POC Frinus Córtex).
+# frinus-claude — lançador do Claude Code para o cliente Frinus (Frinus Córtex).
 #
 # Todo "Novo agente" do escritório nasce como o orquestrador `frinus`, com memória de
 # longo prazo. O Habblaud invoca este script como HABBLAUD_CLAUDE_BIN (ver
@@ -25,10 +25,11 @@ set -euo pipefail
 # Multi-conta: respeita a conta escolhida pelo escritório. Ao "Assumir"/abrir "Nova sessão"
 # numa sala, o Habblaud já exporta CLAUDE_CONFIG_DIR da conta daquela sala (server/pty/manager.ts),
 # então cada conta abre o frinus NA SUA PRÓPRIA conta. Nunca sobrescrevemos isso.
-# O FRINUS_OFFICE_CLAUDE_DIR (opcional, normalmente ausente) só entra como padrão quando o
-# chamador NÃO definiu a conta — caso particular de conta única.
-if [ -z "${CLAUDE_CONFIG_DIR:-}" ] && [ -n "${FRINUS_OFFICE_CLAUDE_DIR:-}" ]; then
-  export CLAUDE_CONFIG_DIR="$FRINUS_OFFICE_CLAUDE_DIR"
+# O FRINUS_CORTEX_CLAUDE_DIR (FRINUS_OFFICE_CLAUDE_DIR: legado; opcional, normalmente ausente) só entra
+# como padrão quando o chamador NÃO definiu a conta — caso particular de conta única.
+_cortex_claude_dir="${FRINUS_CORTEX_CLAUDE_DIR:-${FRINUS_OFFICE_CLAUDE_DIR:-}}"
+if [ -z "${CLAUDE_CONFIG_DIR:-}" ] && [ -n "$_cortex_claude_dir" ]; then
+  export CLAUDE_CONFIG_DIR="$_cortex_claude_dir"
 fi
 
 # Acha o `claude` real: PATH, ou os locais de instalação mais comuns.

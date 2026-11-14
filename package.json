@@ -1,5 +1,5 @@
 {
-  "name": "frinus-office",
+  "name": "frinus-cortex",
   "version": "0.2.2",
   "private": true,
   "description": "Frinus Córtex — escritório visual dos agentes do Frinus (fork do Habblaud, MIT).",

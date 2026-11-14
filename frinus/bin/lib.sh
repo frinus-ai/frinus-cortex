@@ -2,9 +2,14 @@
 #
 # Por que existe: o serviço (systemd --user / launchd) e o atalho NÃO carregam o ~/.bashrc, então o `node` e o
 # `claude` instalados pelo nvm não estão no PATH deles. Na instalação gravamos a pasta do node em
-# ~/.config/frinus-office/env (FRINUS_NODE_DIR); em tempo de execução lemos de lá e, como reserva, carregamos o nvm.
+# ~/.config/frinus-cortex/env (FRINUS_NODE_DIR); em tempo de execução lemos de lá e, como reserva, carregamos o nvm.
 
-FRINUS_ENV_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/frinus-office/env"
+FRINUS_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/frinus-cortex"
+FRINUS_ENV_FILE="$FRINUS_CONFIG_DIR/env"
+# Legado (remover na 0.3.0): lê ~/.config/frinus-office/env quando o novo ainda não existe (cliente pré-migração).
+if [ ! -f "$FRINUS_ENV_FILE" ] && [ -f "${XDG_CONFIG_HOME:-$HOME/.config}/frinus-office/env" ]; then
+  FRINUS_ENV_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/frinus-office/env"
+fi
 
 # Node >= 22.12 (engines do package.json).
 frinus_node_ok() {

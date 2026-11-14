@@ -13,6 +13,34 @@ do meio (0.**3**.0).
 > As versões abaixo com número `0.x` são do Frinus Córtex (distribuição ao cliente). As `1.x` acima são do
 > Habblaud, o motor de base, e ficam aqui como histórico do fork.
 
+## [0.2.3]
+
+### Mudado
+
+- **Rename técnico completo `frinus-office` → `frinus-cortex`.** O que na 0.2.0 ficou com o nome antigo por
+  compatibilidade agora foi renomeado de verdade: pacotes da release (`frinus-cortex-<os>-<arch>.tar.gz`),
+  serviço `systemd --user` `frinus-cortex`, LaunchAgent `br.com.frinus.cortex`, pastas
+  `~/.local/share/frinus-cortex` (app), `~/.frinus-cortex` (dados) e `~/.config/frinus-cortex` (env),
+  scripts (`frinus/bin/frinus-cortex`, `frinus-cortex-open`, `frinus-cortex-wsl`, `install-cortex.sh`),
+  atalho `frinus-cortex.desktop` e o perfil `frinus/cortex.env`. O pacote `package.json` passou a se chamar
+  `frinus-cortex`.
+- **Migração automática dos clientes v0.2.2.** O instalador novo, ao rodar a partir de uma instalação antiga,
+  para/desabilita/remove o serviço `frinus-office`, remove o `frinus-office.desktop` e o LaunchAgent antigo,
+  move `~/.frinus-office` → `~/.frinus-cortex` e `~/.config/frinus-office` → `~/.config/frinus-cortex` (sem
+  sobrescrever o que já existir) e relocaliza o app para `~/.local/share/frinus-cortex`. É idempotente: rodar
+  de novo é no-op.
+- **Variáveis de ambiente** passam a `FRINUS_CORTEX_*` (`FRINUS_CORTEX_DIR`, `FRINUS_CORTEX_SERVICE`,
+  `FRINUS_CORTEX_CLAUDE_DIR`, `FRINUS_CORTEX_CP_URL`, `FRINUS_CORTEX_MEMORY_URL`, `FRINUS_CORTEX_VERSION`,
+  `FRINUS_CORTEX_BASE_URL`); os nomes `FRINUS_OFFICE_*` continuam aceitos como legado.
+
+### Transição (remover na 0.3.0)
+
+- A release publica **também** os assets com o nome antigo `frinus-office-<os>-<arch>.tar.gz` (mesmo conteúdo),
+  cobertos pelo `SHA256SUMS`, para o `get.sh` dos clientes v0.2.2 continuar baixando.
+- Ficam como **shims finos** (só `exec` do novo): `frinus/bin/frinus-office{,-open,-wsl}`, `install-office.sh`
+  e `frinus/office.env` (carrega `cortex.env`). `server/config.ts` aceita os nomes de pacote
+  `frinus-cortex` e `frinus-office`.
+
 ## [0.2.0] - 2026-11-13
 
 ### Mudado

@@ -4,8 +4,10 @@ name: Release
 # Disparo: push de tag vX.Y.Z (a versão do package.json precisa bater com a tag).
 #
 # Assets da release:
-#   frinus-office-<linux|darwin>-<x64|arm64>.tar.gz  versão compilada + node_modules de produção (node-pty nativo)
-#   SHA256SUMS                                       conferido pelo install.sh antes de instalar
+#   frinus-cortex-<linux|darwin>-<x64|arm64>.tar.gz  versão compilada + node_modules de produção (node-pty nativo)
+#   frinus-office-<linux|darwin>-<x64|arm64>.tar.gz  MESMO conteúdo, nome antigo — para o get.sh dos clientes
+#                                                    v0.2.2 (transição; remover na 0.3.0)
+#   SHA256SUMS                                       conferido pelo install.sh antes de instalar (cobre os dois nomes)
 #   install.sh                                       = frinus/get.sh (curl ... | bash)
 #   Instalar-Frinus-Cortex.cmd                       Windows (WSL) — chama o setup.ps1 do frinus-mcp em modo office
 on:
@@ -83,13 +85,17 @@ jobs:
           tar --exclude='*.test.ts' --exclude='*.map' -cf - \
             .release LICENSE README.md README.pt-BR.md package.json package-lock.json tsconfig.json \
             .claude-plugin mod frinus dist server shared scripts node_modules | tar -xf - -C "$stage"
-          tar -czf "frinus-office-${{ matrix.target }}.tar.gz" -C "$stage" .
-          ls -lh "frinus-office-${{ matrix.target }}.tar.gz"
+          tar -czf "frinus-cortex-${{ matrix.target }}.tar.gz" -C "$stage" .
+          # Transição (remover na 0.3.0): mesmo conteúdo com o nome antigo, para o get.sh dos clientes v0.2.2.
+          cp "frinus-cortex-${{ matrix.target }}.tar.gz" "frinus-office-${{ matrix.target }}.tar.gz"
+          ls -lh "frinus-cortex-${{ matrix.target }}.tar.gz" "frinus-office-${{ matrix.target }}.tar.gz"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: frinus-office-${{ matrix.target }}
-          path: frinus-office-${{ matrix.target }}.tar.gz
+          name: frinus-cortex-${{ matrix.target }}
+          path: |
+            frinus-cortex-${{ matrix.target }}.tar.gz
+            frinus-office-${{ matrix.target }}.tar.gz
           if-no-files-found: error
 
   publicar:
@@ -114,7 +120,7 @@ jobs:
         run: |
           cp frinus/get.sh out/install.sh
           cp frinus/windows/Instalar-Frinus-Cortex.cmd out/Instalar-Frinus-Cortex.cmd
-          (cd out && sha256sum frinus-office-*.tar.gz install.sh Instalar-Frinus-Cortex.cmd > SHA256SUMS && cat SHA256SUMS)
+          (cd out && sha256sum frinus-cortex-*.tar.gz frinus-office-*.tar.gz install.sh Instalar-Frinus-Cortex.cmd > SHA256SUMS && cat SHA256SUMS)
 
       - name: Publicar release
         run: |

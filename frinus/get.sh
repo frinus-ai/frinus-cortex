@@ -5,20 +5,20 @@
 #
 # Publicado em cada release como "install.sh" (fonte: frinus/get.sh no repositório). Faz:
 #   1) baixa a versão PRONTA (já compilada) do Frinus Córtex para este sistema, confere o SHA-256 e coloca em
-#      ~/.local/share/frinus-office (troca atômica: numa atualização, a versão anterior só sai depois que a nova
+#      ~/.local/share/frinus-cortex (troca atômica: numa atualização, a versão anterior só sai depois que a nova
 #      está completa; contas, conversas e configurações ficam em outras pastas e não são tocadas);
 #   2) chama o instalador de dentro da versão (frinus/install.sh --gui), que instala Node e Claude Code se
-#      faltarem, PEDE A CHAVE do Frinus (digitada escondida), liga a memória, instala o escritório, o início
+#      faltarem, PEDE A CHAVE do Frinus (digitada escondida), liga a memória, instala o Córtex, o início
 #      automático e o atalho, e abre no navegador.
 #
 # Rodar de novo = atualizar/reparar. Opções (repassadas ao instalador): --dictation, --alias <apelido>, --dry-run.
-# Variáveis: FRINUS_OFFICE_VERSION=v0.1.0 (fixa uma versão), FRINUS_API_KEY (pula a pergunta da chave),
-#            FRINUS_OFFICE_DIR (pasta de instalação).
+# Variáveis: FRINUS_CORTEX_VERSION=v0.1.0 (fixa uma versão), FRINUS_API_KEY (pula a pergunta da chave),
+#            FRINUS_CORTEX_DIR (pasta de instalação). Os nomes antigos FRINUS_OFFICE_* ainda funcionam (legado).
 set -euo pipefail
 
 REPO="frinus-ai/frinus-cortex"
-APP_DIR="${FRINUS_OFFICE_DIR:-$HOME/.local/share/frinus-office}"
-VERSION="${FRINUS_OFFICE_VERSION:-latest}"
+APP_DIR="${FRINUS_CORTEX_DIR:-${FRINUS_OFFICE_DIR:-$HOME/.local/share/frinus-cortex}}"
+VERSION="${FRINUS_CORTEX_VERSION:-${FRINUS_OFFICE_VERSION:-latest}}"
 
 ROXO=$'\033[1;35m'; VERM=$'\033[1;31m'; FIM=$'\033[0m'
 say()  { printf '\n%s==>%s %s\n' "$ROXO" "$FIM" "$*"; }
@@ -40,9 +40,9 @@ case "$(uname -m)" in
   aarch64|arm64) arch=arm64 ;;
   *) fail "Processador não suportado: $(uname -m)." ;;
 esac
-asset="frinus-office-${os}-${arch}.tar.gz"
-if [ -n "${FRINUS_OFFICE_BASE_URL:-}" ]; then
-  base="$FRINUS_OFFICE_BASE_URL"     # testes: servidor local com os mesmos assets da release
+asset="frinus-cortex-${os}-${arch}.tar.gz"
+if [ -n "${FRINUS_CORTEX_BASE_URL:-${FRINUS_OFFICE_BASE_URL:-}}" ]; then
+  base="${FRINUS_CORTEX_BASE_URL:-$FRINUS_OFFICE_BASE_URL}"     # testes: servidor local com os mesmos assets da release
 elif [ "$VERSION" = latest ]; then
   base="https://github.com/$REPO/releases/latest/download"
 else

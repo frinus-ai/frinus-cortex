@@ -68,7 +68,7 @@ function splitList(v: string | undefined): string[] {
 /**
  * Perfil "só Frinus" (FRINUS_ONLY): o escritório monitora SOMENTE as contas do Claude Code que têm o MCP do
  * Frinus configurado no .claude.json, e dá nome amigável pela organização (ou pela pasta). Ligado no perfil do
- * Frinus Córtex (frinus/office.env); ausente = comportamento normal do Habblaud (todas as contas). Local, para
+ * Frinus Córtex (frinus/cortex.env); ausente = comportamento normal do Habblaud (todas as contas). Local, para
  * não depender de ../config (que importa este módulo).
  */
 export function frinusOnly(env: NodeJS.ProcessEnv): boolean {

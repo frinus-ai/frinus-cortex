@@ -9,35 +9,35 @@ que é próprio do Frinus; o resto do código é o Habblaud.
 ```bash
 npm ci            # uma vez
 npm run build     # compila client + server (dist/)
-frinus/bin/frinus-office   # sobe em http://127.0.0.1:4748
+frinus/bin/frinus-cortex   # sobe em http://127.0.0.1:4748
 ```
 
 ## Instalação de uma vez (Linux / WSL)
 
 ```bash
-frinus/bin/install-office.sh            # build + mod nas contas Frinus + serviço + atalho
-frinus/bin/install-office.sh --dry-run  # mostra tudo o que faria, sem alterar nada
+frinus/bin/install-cortex.sh            # build + mod nas contas Frinus + serviço + atalho
+frinus/bin/install-cortex.sh --dry-run  # mostra tudo o que faria, sem alterar nada
 ```
 
-O `install-office.sh` é **idempotente** (pode rodar de novo) e faz, nesta ordem:
+O `install-cortex.sh` é **idempotente** (pode rodar de novo) e faz, nesta ordem:
 
 1. **build** (client + server) em `dist/` — `npm ci` só na primeira vez;
 2. **`npm run mod:install`** com `FRINUS_ONLY=1`, ou seja, SÓ nas contas que têm o MCP do Frinus
    (é o que faz os cartões de permissão e mensagem chegarem ao escritório). Pula com um aviso se o
    `claude` não estiver no PATH;
-3. **serviço `systemd --user frinus-office`** na porta 4748 (`ExecStart` = `frinus/bin/frinus-office`).
+3. **serviço `systemd --user frinus-cortex`** na porta 4748 (`ExecStart` = `frinus/bin/frinus-cortex`).
    Não encosta no `habblaud.service` de produção (4747): nome, pasta e porta diferentes;
 4. **atalho `.desktop`** ("Frinus Córtex") que sobe o serviço e abre a tela no navegador
    (em WSL, via `wslview`/`powershell.exe`).
 
 Opções: `--skip-build`, `--skip-mod`, `--no-service`, `--no-desktop`, `--service <nome>` (nome
-alternativo do serviço, útil para testar sem tocar no `frinus-office` real).
+alternativo do serviço, útil para testar sem tocar no `frinus-cortex` real).
 
 > **WSL:** o serviço systemd `--user` exige systemd ligado (`/etc/wsl.conf` com `[boot] systemd=true`
 > e `wsl --shutdown`). Sem ele, o instalador avisa e o escritório pode ser subido à mão com
-> `frinus/bin/frinus-office`.
+> `frinus/bin/frinus-cortex`.
 
-## O que o perfil faz (`office.env`)
+## O que o perfil faz (`cortex.env`)
 
 - **Loopback only**: `HABBLAUD_HOST=127.0.0.1`, porta `4748` (não colide com o
   Habblaud de produção na 4747).
@@ -61,9 +61,9 @@ alternativo do serviço, útil para testar sem tocar no `frinus-office` real).
   `frinus` **na sua própria conta**: ao assumir ou abrir "Nova sessão", o Habblaud exporta o
   `CLAUDE_CONFIG_DIR` da conta escolhida (`server/pty/manager.ts`) e o `frinus-claude` respeita
   (não sobrescreve). **Conta única** é só um caso particular: deixar uma só pasta `~/.claude*` ou,
-  no limite, definir `FRINUS_OFFICE_CLAUDE_DIR` (fallback usado apenas quando o chamador não
+  no limite, definir `FRINUS_CORTEX_CLAUDE_DIR` (fallback usado apenas quando o chamador não
   escolheu conta).
-- **Estado separado** do Habblaud de produção: `HABBLAUD_DATA_DIR=~/.frinus-office`
+- **Estado separado** do Habblaud de produção: `HABBLAUD_DATA_DIR=~/.frinus-cortex`
   (o Habblaud padrão usa `~/.habblaud`).
 
 ### Ressalva multi-conta — "Novo agente" em segundo plano
@@ -82,7 +82,7 @@ faltaria: incluir `account` no `SpawnRequest`/`parseSpawn` e, no `createCliRunne
 Não há variável de ambiente para forçar a pasta inicial do "Novo agente". O cliente
 hoje escolhe a pasta no cartão de Novo agente, e o navegador lembra a última em
 `localStorage` (`habblaud.spawn.folder`) + oferece as pastas recentes de
-`GET /api/spawn/folders`. `frinus-office` cria `~/Frinus`, mas para que ela venha
+`GET /api/spawn/folders`. `frinus-cortex` cria `~/Frinus`, mas para que ela venha
 **pré-selecionada** é preciso uma mudança de cliente em `client/src/ui/spawn.ts`:
 semear `this.selected`/`this.folder.value` com `~/Frinus` quando não houver última
 pasta salva (hoje o `placeholder` é fixo `/Users/voce/projeto`, l.142; o valor inicial
@@ -100,7 +100,7 @@ os hooks a descobrem em tempo de execução a partir do ambiente da sessão.
 - O plugin de mensagens (`mod/habblaud-mensagens/hooks/register.ts`) lê a porta só de
   `HABBLAUD_PORT` (`$.env.get('HABBLAUD_PORT')`), caindo em `4747`.
 
-O **Frinus Córtex injeta `HABBLAUD_PORT=4748`** em toda sessão que abre: o `office.env` exporta a
+O **Frinus Córtex injeta `HABBLAUD_PORT=4748`** em toda sessão que abre: o `cortex.env` exporta a
 variável e o servidor a repassa tanto ao terminal/PTY (`server/pty/manager.ts` — `HABBLAUD_PORT`
 não está em `INHERITED_SESSION_VARS`) quanto ao "Novo agente" em segundo plano (`server/spawn/spawn.ts`
 roda o `claude` herdando o ambiente do servidor). Logo, as sessões abertas pela 4748 falam com a 4748.
@@ -110,6 +110,6 @@ escritórios. Uma sessão aberta pelo `habblaud.service` (sem `HABBLAUD_PORT`, o
 a 4747; uma sessão aberta pelo Frinus Córtex fala com a 4748. Nada é gravado por conta apontando
 para uma porta só — por isso não há conflito e nada precisa ser reinstalado ao alternar.
 
-Instalar o mod nas contas com Frinus: `frinus/bin/install-office.sh` (passo 2, com `FRINUS_ONLY=1`),
+Instalar o mod nas contas com Frinus: `frinus/bin/install-cortex.sh` (passo 2, com `FRINUS_ONLY=1`),
 ou `FRINUS_ONLY=1 npm run mod:install`. ⚠️ O `mod:install` mexe nas contas `~/.claude*` usadas ao
 vivo — use `--dry-run` para conferir antes.

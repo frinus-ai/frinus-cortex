@@ -1,42 +1,5 @@
 #!/usr/bin/env bash
-# frinus-office — sobe o escritório Frinus (fork do Habblaud) no perfil local-cliente.
-#
-# Carrega frinus/office.env, aponta o lançador Frinus (HABBLAUD_CLAUDE_BIN) e roda o
-# servidor já compilado (dist/server/index.js). A release já vem compilada; numa cópia
-# do código-fonte, rode `npm run build` antes, uma vez.
-set -euo pipefail
-
-# Raiz do Office, a partir deste script em frinus/bin/.
+# frinus-office — shim de compatibilidade (remover na 0.3.0). Só executa o frinus-cortex.
+# Mantido porque unidades/atalhos de clientes v0.2.2 podem apontar para este nome.
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-root="$(cd "$here/../.." && pwd)"
-
-# node/claude no PATH (o serviço não lê o ~/.bashrc).
-# shellcheck disable=SC1091
-. "$here/lib.sh"
-frinus_load_node
-
-# Perfil local-cliente.
-set -a
-# shellcheck disable=SC1091
-. "$root/frinus/office.env"
-set +a
-
-# Estado do escritório separado do Habblaud de produção (~/.habblaud).
-export HABBLAUD_DATA_DIR="${HABBLAUD_DATA_DIR:-$HOME/.frinus-office}"
-
-# Lançador Frinus (caminho absoluto; o wrapper precede `--agent frinus`).
-export HABBLAUD_CLAUDE_BIN="$here/frinus-claude"
-
-# Garante os diretórios de estado e a pasta de trabalho padrão do cliente.
-mkdir -p "$HABBLAUD_DATA_DIR" "$HOME/Frinus"
-
-if [ ! -f "$root/dist/server/index.js" ]; then
-  echo "frinus-office: build ausente. Rode 'npm run build' em $root primeiro." >&2
-  exit 1
-fi
-if ! frinus_node_ok; then
-  echo "frinus-office: precisa do Node 22.12 ou mais novo. Rode o instalador do Frinus Córtex de novo." >&2
-  exit 1
-fi
-
-exec node "$root/dist/server/index.js" "$@"
+exec "$here/frinus-cortex" "$@"

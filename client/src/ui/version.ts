@@ -124,7 +124,7 @@ const FRINUS_PANEL_URL = 'https://frinus.rdxsec.com.br/integrations/frinus-corte
 
 /**
  * Seção "Sobre" das configurações: o Frinus Córtex, a versão em uso e como atualizar. No Córtex a busca de versão
- * nova no GitHub fica desligada (HABBLAUD_UPDATE_CHECK=0 no office.env): atualizar é rodar o instalador de novo.
+ * nova no GitHub fica desligada (HABBLAUD_UPDATE_CHECK=0 no cortex.env): atualizar é rodar o instalador de novo.
  */
 export class AboutGroup {
   readonly el: HTMLElement;
