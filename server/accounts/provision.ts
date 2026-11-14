@@ -11,8 +11,8 @@ import { isFrinusMcpServer } from './detect';
 
 /** Nome do servidor MCP (mantém igual ao instalador e ao leitor de chave em http/frinus.ts). */
 const MCP_NAME = 'frinus-mcp';
-/** Control Plane do Frinus (confirma a chave e descobre a empresa/orquestrador). Sobrescreva com FRINUS_OFFICE_CP_URL. */
-const CP_URL = (process.env.FRINUS_OFFICE_CP_URL || 'https://frinus-api.rdxsec.com.br').replace(/\/+$/, '');
+/** Control Plane do Frinus (confirma a chave e descobre a empresa/orquestrador). Sobrescreva com FRINUS_CORTEX_CP_URL (FRINUS_OFFICE_CP_URL: legado). */
+const CP_URL = (process.env.FRINUS_CORTEX_CP_URL || process.env.FRINUS_OFFICE_CP_URL || 'https://frinus-api.rdxsec.com.br').replace(/\/+$/, '');
 const VERIFY_TIMEOUT_MS = 12_000;
 
 /** Alias: minúsculas, dígitos, hífen/sublinhado; começa por letra/dígito; até 32. Vira a pasta ".claude-<alias>". */

@@ -824,7 +824,7 @@ export async function scanPrefix(
 }
 
 /**
- * Frinus Office: conta a contribuição do agente à memória de longo prazo pelo nome da ferramenta MCP
+ * Frinus Córtex: conta a contribuição do agente à memória de longo prazo pelo nome da ferramenta MCP
  * (mcp__frinus-mcp__*). Alimenta o painel "Contribuição" da gaveta. Ver shared/activity.ts › describeMcp.
  */
 function countFrinusContribution(stats: AgentStats, name: string): void {

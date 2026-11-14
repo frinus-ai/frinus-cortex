@@ -73,7 +73,7 @@ export class FeedPanel implements UiComponent {
       ctx.invalidate();
     });
     this.appendPending(ctx.store.feed.slice(-VISIBLE));
-    // Frinus Office: a camada de jogo (partidas e apostas da "vida social") não entra no feed.
+    // Frinus Córtex: a camada de jogo (partidas e apostas da "vida social") não entra no feed.
   }
 
   render(): void {

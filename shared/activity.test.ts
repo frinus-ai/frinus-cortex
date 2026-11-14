@@ -152,7 +152,7 @@ describe('atividades', () => {
   });
 });
 
-describe('rótulos Frinus (POC Frinus Office)', () => {
+describe('rótulos Frinus (POC Frinus Córtex)', () => {
   it('ferramentas de memória do Frinus ganham rótulos amigáveis', () => {
     expect(describeTool('mcp__frinus-mcp__memory_store', { content: 'x' })).toEqual({ kind: 'write', icon: '🧠', text: 'Guardando na memória' });
     expect(describeTool('mcp__frinus-mcp__memory_search', { query: 'x' })).toEqual({ kind: 'search', icon: '🔎', text: 'Consultando a memória' });

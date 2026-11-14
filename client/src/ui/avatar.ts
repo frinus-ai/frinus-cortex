@@ -1,4 +1,4 @@
-// Avatares dos agentes para a UI. No Frinus Office não há rosto: orbe com a logo (sessão) ou neurônio (especialista).
+// Avatares dos agentes para a UI. No Frinus Córtex não há rosto: orbe com a logo (sessão) ou neurônio (especialista).
 import type { AgentInfo } from '../../../shared/types';
 import { h } from './dom';
 
@@ -19,7 +19,7 @@ export function createAvatarPlaceholder(size: AvatarSize): HTMLElement {
 }
 
 /**
- * Frinus Office: o agente não tem rosto. A sessão principal (o orquestrador Frinus) é um orbe com a logo;
+ * Frinus Córtex: o agente não tem rosto. A sessão principal (o orquestrador Frinus) é um orbe com a logo;
  * o subagente (especialista do time) é um neurônio — núcleo com dendritos. Cor vem de --acc (conta).
  */
 // Neurônio: núcleo + dendritos curvos (recebem) de um lado e um axônio de luz (projeta) do outro —

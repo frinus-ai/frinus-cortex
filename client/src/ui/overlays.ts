@@ -11,7 +11,7 @@ const DISCONNECTED_BANNER_MS = 8_000;
 
 function brandMark(size: number): HTMLElement {
   const mark = h('span', { class: 'ui-brand__mark' });
-  // Frinus Office: a tela de carregamento usa a logo do Frinus (SVG), não o prédio em pixel do Habblaud.
+  // Frinus Córtex: a tela de carregamento usa a logo do Frinus (SVG), não o prédio em pixel do Habblaud.
   const img = h('img', {
     attrs: { src: '/assets/brand/frinus-logo.svg', alt: '', width: size, height: size, draggable: 'false' },
     style: 'image-rendering:auto;object-fit:contain',

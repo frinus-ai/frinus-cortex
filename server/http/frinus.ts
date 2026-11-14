@@ -1,4 +1,4 @@
-// Ponte do Frinus Office com a Memory Engine do Frinus (busca de memória, tarefas e saúde).
+// Ponte do Frinus Córtex com a Memory Engine do Frinus (busca de memória, tarefas e saúde).
 //
 // A página nunca fala direto com a Memory Engine nem vê a chave: ela chama estas rotas locais, e o
 // servidor injeta a X-API-Key da conta escolhida (lida do frinus-mcp no .claude.json daquela conta) só no
@@ -20,13 +20,13 @@ import { isFrinusMcpServer } from '../accounts/detect';
 import { ProvisionError, provisionFrinusAccount } from '../accounts/provision';
 import { pickFolder } from './folder-picker';
 
-/** URL da Memory Engine em produção (sobrescreva com FRINUS_OFFICE_MEMORY_URL para apontar outra instância). */
-const MEMORY_URL = (process.env.FRINUS_OFFICE_MEMORY_URL || 'https://frinus-memory.rdxsec.com.br').replace(/\/+$/, '');
+/** URL da Memory Engine em produção (sobrescreva com FRINUS_CORTEX_MEMORY_URL; FRINUS_OFFICE_MEMORY_URL: legado). */
+const MEMORY_URL = (process.env.FRINUS_CORTEX_MEMORY_URL || process.env.FRINUS_OFFICE_MEMORY_URL || 'https://frinus-memory.rdxsec.com.br').replace(/\/+$/, '');
 /** Tempo máximo esperando a Memory Engine (a rede pode estar lenta; nunca pendura a página). */
 const UPSTREAM_TIMEOUT_MS = 15_000;
 const SEARCH_LIMIT_MAX = 50;
-/** Control Plane (nome da empresa da chave); sobrescreva com FRINUS_OFFICE_CP_URL. */
-const CP_URL = (process.env.FRINUS_OFFICE_CP_URL || 'https://frinus-api.rdxsec.com.br').replace(/\/+$/, '');
+/** Control Plane (nome da empresa da chave); sobrescreva com FRINUS_CORTEX_CP_URL (FRINUS_OFFICE_CP_URL: legado). */
+const CP_URL = (process.env.FRINUS_CORTEX_CP_URL || process.env.FRINUS_OFFICE_CP_URL || 'https://frinus-api.rdxsec.com.br').replace(/\/+$/, '');
 /** Identidade Frinus de cada chave: guardada em memória por 10 min (falha: 1 min, para tentar de novo logo). */
 const IDENTITY_TTL_MS = 10 * 60_000;
 const IDENTITY_FAIL_TTL_MS = 60_000;

@@ -648,7 +648,7 @@ function describeMcp(name: string, input: Record<string, unknown>): ActivityDesc
     return make('browser', '🧭', tr('Navegador: {0}', [humanize(tool)]));
   }
   if (/frinus/i.test(srv)) {
-    // Frinus é a memória de longo prazo do agente: rótulos amigáveis para o cliente leigo (POC Frinus Office).
+    // Frinus é a memória de longo prazo do agente: rótulos amigáveis para o cliente leigo (POC Frinus Córtex).
     if (tool === 'memory_store') return make('write', '🧠', tr('Guardando na memória'));
     if (/^(memory_search|search_with_attention|memory_get_context)$/.test(tool)) return make('search', '🔎', tr('Consultando a memória'));
     if (/^agent_(bootstrap|reorient)$/.test(tool)) return make('mcp', '☀️', tr('Acordando'));

@@ -70,7 +70,7 @@ function panel(feed: FeedItem[] = [], agents: AgentInfo[] = []) {
   const snapshot = { agents, rooms: [] };
   const prefs = { hiddenAccounts: [] as string[] };
   let open = true;
-  // Frinus Office: o feed não ingere mais eventos da "vida social" (camada de jogo desligada), só o fluxo SSE.
+  // Frinus Córtex: o feed não ingere mais eventos da "vida social" (camada de jogo desligada), só o fluxo SSE.
   const ctx = {
     store: { feed, snapshot, on: (_event: string, cb: typeof receive) => { receive = cb; } },
     world: {},
@@ -150,7 +150,7 @@ describe('FeedPanel pausado', () => {
     p.view.render();
     expect([...meta.keys()]).toEqual([...retainedIds.slice(1), 'sem-evento']);
     expect(p.list.children).toHaveLength(50);
-    // Frinus Office: o avatar não tem rosto; a assinatura é só o tipo (sessão principal × especialista).
+    // Frinus Córtex: o avatar não tem rosto; a assinatura é só o tipo (sessão principal × especialista).
     expect(p.list.children[0].firstElementChild!.children[1].dataset.sig).toBe('main');
   });
 });

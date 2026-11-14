@@ -3287,7 +3287,7 @@ export const FR: Readonly<Record<string, string>> = {
   "Entre no prédio ou chegue mais perto da porta para carimbar.": "Entrez dans l'immeuble ou approchez-vous de la porte pour tamponner.",
   "O carimbo não foi deixado. Tente de novo.": "Le tampon n'a pas été laissé. Réessayez.",
 
-  // client/src/ui/contribution.ts (Frinus Office)
+  // client/src/ui/contribution.ts (Frinus Córtex)
   "Contribuição": "Contribution",
   "Memórias gravadas": "Mémoires enregistrées",
   "Fatos e aprendizados que o agente guardou na memória de longo prazo do Frinus.": "Faits et apprentissages que l'agent a enregistrés dans la mémoire à long terme de Frinus.",

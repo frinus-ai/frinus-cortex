@@ -566,7 +566,7 @@
   border-radius: 12px;
 }
 
-/* Frinus Office: orbe (sessão Frinus) e neurônio (especialista), sem rosto — a mesma
+/* Frinus Córtex: orbe (sessão Frinus) e neurônio (especialista), sem rosto — a mesma
    língua visual da cena Cérebro no canvas. */
 .ui-avatar--frinus {
   align-items: center;
@@ -4519,7 +4519,7 @@
   color: #ffe6a3;
 }
 
-/* ---------------------------------------------------------------- contribuição (Frinus Office) */
+/* ---------------------------------------------------------------- contribuição (Frinus Córtex) */
 
 /* Painel sóbrio de contadores do agente, na paleta Frinus (roxo #6C3FC4, âmbar #E8B860). Sem moedas, sem ranking. */
 .ui-contrib__grid {
