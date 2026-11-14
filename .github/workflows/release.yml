@@ -90,7 +90,7 @@ jobs:
           cp "frinus-cortex-${{ matrix.target }}.tar.gz" "frinus-office-${{ matrix.target }}.tar.gz"
           ls -lh "frinus-cortex-${{ matrix.target }}.tar.gz" "frinus-office-${{ matrix.target }}.tar.gz"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: frinus-cortex-${{ matrix.target }}
           path: |
