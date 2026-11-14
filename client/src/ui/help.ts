@@ -130,7 +130,7 @@ export class HelpDialog {
         h('section', {}, h('h3', { text: 'Status' }), statusList),
         h('section', {}, h('h3', { text: tr('Atividades') }), iconList),
         this.shellSection(),
-        // Frinus Office: sem a legenda da "vida social" (moedinhas, apostas, carteira) — camada de jogo desligada na UI.
+        // Frinus Córtex: sem a legenda da "vida social" (moedinhas, apostas, carteira) — camada de jogo desligada na UI.
         this.githubSection(),
         h(
           'section',

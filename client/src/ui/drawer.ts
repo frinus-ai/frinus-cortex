@@ -283,7 +283,7 @@ class AgentView {
     const heroText = h(
       'div',
       { class: 'ui-hero__text' },
-      // Frinus Office: sem o lápis de editar personagem (nomes são do Frinus/especialista, não de pessoa).
+      // Frinus Córtex: sem o lápis de editar personagem (nomes são do Frinus/especialista, não de pessoa).
       h('div', { class: 'ui-hero__line' }, this.name, this.role),
       h('div', { class: 'ui-hero__acc' }, this.accChip, this.accName, this.accProv, this.accEmail),
       h('div', { class: 'ui-hero__where' }, h('span', { class: 'ui-muted', text: tr('Sala') }), this.roomBtn),

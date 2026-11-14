@@ -111,7 +111,7 @@ export interface MainInput {
   waitingFor?: string;
 }
 
-/** Nome fixo da sessão principal no Frinus Office. */
+/** Nome fixo da sessão principal no Frinus Córtex. */
 export const FRINUS_MAIN_NAME = 'Frinus';
 
 /**
@@ -347,7 +347,7 @@ export class Office {
       id: p.id,
       kind: 'main',
       roomId,
-      // Frinus Office: toda sessão principal é o orquestrador Frinus (sem nome de pessoa).
+      // Frinus Córtex: toda sessão principal é o orquestrador Frinus (sem nome de pessoa).
       name: FRINUS_MAIN_NAME,
       look: person.look,
       role: p.role,
@@ -611,7 +611,7 @@ export class Office {
       kind: 'sub',
       parentId: p.parentId,
       roomId: parent.info.roomId,
-      // Frinus Office: o subagente leva o nome do especialista do time, não um nome de pessoa.
+      // Frinus Córtex: o subagente leva o nome do especialista do time, não um nome de pessoa.
       name: specialistName(p.role, p.title),
       look: person.look,
       role: p.role,
@@ -870,7 +870,7 @@ export class Office {
     if (owner === undefined || owner === info.sessionId) this.deps.names.clearCharacter(info.roomId);
     if (info.custom) {
       const person = this.deps.names.assign(info.sessionId, this.takenNames(id));
-      // Frinus Office: a sessão principal volta a ser "Frinus" (sem nome de pessoa), como em addMain.
+      // Frinus Córtex: a sessão principal volta a ser "Frinus" (sem nome de pessoa), como em addMain.
       info.name = FRINUS_MAIN_NAME;
       info.look = person.look;
       info.seed = hash32(id);

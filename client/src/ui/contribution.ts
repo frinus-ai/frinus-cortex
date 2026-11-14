@@ -1,4 +1,4 @@
-// Painel "Contribuição" da gaveta do agente (Frinus Office): o que o agente somou à memória de longo prazo e ao
+// Painel "Contribuição" da gaveta do agente (Frinus Córtex): o que o agente somou à memória de longo prazo e ao
 // trabalho da sessão, em linguagem de cliente leigo. Sem ranking entre agentes e sem moedas — só os números do
 // próprio agente, montados de dados que o cliente já tem (AgentInfo.stats, tasks e as entregas via ctx.deliveries).
 import type { AgentInfo } from '../../../shared/types';

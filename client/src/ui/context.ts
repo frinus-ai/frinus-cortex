@@ -36,7 +36,7 @@ export interface UiContext {
   readonly store: OfficeStore;
   /** Janela de terminal (definida depois que os painéis existem). */
   terminals?: TerminalRouter;
-  /** Entregas conhecidas agora (painel de Entregas; definido depois que ele existe). Frinus Office: contador "Entregas". */
+  /** Entregas conhecidas agora (painel de Entregas; definido depois que ele existe). Frinus Córtex: contador "Entregas". */
   deliveries?(): readonly DeliveryInfo[];
   readonly world: WorldApi;
   readonly root: HTMLElement;

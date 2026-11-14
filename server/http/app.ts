@@ -102,7 +102,7 @@ export interface ApiDeps {
    */
   world?: (req: IncomingMessage, res: ServerResponse, url: URL) => void;
   /**
-   * Rotas do Frinus Office (/api/frinus/*, server/http/frinus.ts): busca de memória, tarefas e saúde, via proxy
+   * Rotas do Frinus Córtex (/api/frinus/*, server/http/frinus.ts): busca de memória, tarefas e saúde, via proxy
    * para a Memory Engine com a chave da conta. Só pelo próprio computador (isLocalOnlyPath): a chave nunca é usada
    * em nome de um acesso remoto. Devolve false para o que não é dela.
    */
