@@ -13,6 +13,17 @@ do meio (0.**3**.0).
 > As versões abaixo com número `0.x` são do Frinus Córtex (distribuição ao cliente). As `1.x` acima são do
 > Habblaud, o motor de base, e ficam aqui como histórico do fork.
 
+## [0.2.4] - 2026-11-15
+
+### Corrigido
+
+- **Copiar e colar no terminal interativo.** O terminal não deixava copiar o texto que aparecia nele: o
+  `Ctrl+C` virava `^C` e ia para o Claude, e o menu do botão direito não enxergava a seleção. Agora dá para
+  copiar e colar como em qualquer terminal: **`Ctrl+Shift+C`** (ou **`Cmd+C`** no Mac) copia a seleção;
+  **`Ctrl+C`** copia quando há texto selecionado e, sem seleção, continua interrompendo o comando (`^C`) como
+  antes; **`Ctrl+Shift+V`** (ou **`Cmd+V`**) cola; e o **botão direito** com algo selecionado também copia. Ao
+  copiar, um aviso curto **"Copiado"** aparece no canto do terminal.
+
 ## [0.2.3]
 
 ### Mudado
