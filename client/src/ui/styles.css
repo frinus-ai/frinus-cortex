@@ -11743,6 +11743,11 @@ html.is-replay #world {
 .ui-pty__drop[hidden] {
   display: none;
 }
+.ui-pty__drop.is-toast {
+  inset: auto 12px 12px auto;
+  padding: 6px 12px;
+  pointer-events: none;
+}
 .ui-pty__drop.is-error {
   border-color: color-mix(in srgb, var(--st-alert, #f06fa0) 70%, transparent);
   color: color-mix(in srgb, var(--st-alert, #f06fa0) 30%, var(--ui-text));

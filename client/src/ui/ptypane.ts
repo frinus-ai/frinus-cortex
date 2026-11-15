@@ -6,6 +6,7 @@ import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import { postPty } from './ptyapi';
 import { formatPathForInsert, hasAttachment, resolveAttachment } from './attach';
+import { copyText } from './dom';
 import { tr } from '../../../shared/i18n';
 
 const RESIZE_DEBOUNCE_MS = 120;
@@ -40,6 +41,15 @@ export class PtyPane {
     this.term.loadAddon(this.fit);
     this.term.open(this.el);
     this.term.onData((d) => this.send(d));
+    // Copiar: o xterm não copia sozinho (Ctrl+C vira ^C e o menu do botão direito não enxerga a seleção).
+    // Ctrl+Shift+C (ou Cmd+C) copia a seleção; Ctrl+C copia se houver seleção, senão segue como ^C;
+    // Ctrl+Shift+V cola pelo caminho nativo; botão direito com seleção copia.
+    this.term.attachCustomKeyEventHandler((e) => this.onKey(e));
+    this.el.addEventListener('contextmenu', (e) => {
+      if (!this.term.hasSelection()) return;
+      e.preventDefault();
+      void this.copySelection();
+    });
     this.term.onResize(({ cols, rows }) => this.scheduleResize(cols, rows));
     this.ro = new ResizeObserver(() => this.refit());
     this.ro.observe(this.el);
@@ -53,6 +63,33 @@ export class PtyPane {
     this.el.addEventListener('drop', (e) => this.onDrop(e));
     // Captura: pega o colar de arquivo ANTES do textarea escondido do xterm (que só saberia colar texto).
     this.el.addEventListener('paste', (e) => this.onPaste(e), true);
+  }
+
+  // ---------------------------------------------------------------- copiar/colar texto
+
+  private onKey(e: KeyboardEvent): boolean {
+    if (e.type !== 'keydown') return true;
+    const key = e.key.toLowerCase();
+    const mod = e.ctrlKey || e.metaKey;
+    if (!mod || e.altKey) return true;
+    if (key === 'c' && (e.shiftKey || e.metaKey || this.term.hasSelection())) {
+      if (!this.term.hasSelection()) return false; // Ctrl+Shift+C sem seleção: não manda nada ao Claude
+      e.preventDefault();
+      void this.copySelection();
+      return false;
+    }
+    // Ctrl+Shift+V / Cmd+V: deixa o navegador disparar o "paste" nativo (o xterm e o onPaste cuidam dele).
+    if (key === 'v' && (e.shiftKey || e.metaKey)) return false;
+    return true;
+  }
+
+  private async copySelection(): Promise<void> {
+    const text = this.term.getSelection();
+    if (!text) return;
+    const ok = await copyText(text);
+    this.term.clearSelection();
+    this.term.focus();
+    this.showDrop(ok ? tr('Copiado') : tr('Não foi possível copiar'), !ok, ok ? 1_200 : 4_000, true);
   }
 
   // ---------------------------------------------------------------- anexos (arrastar/colar)
@@ -93,7 +130,7 @@ export class PtyPane {
     if (hint) this.showDrop(hint, true);
   }
 
-  private showDrop(text: string, error: boolean): void {
+  private showDrop(text: string, error: boolean, ms = 6_000, toast = false): void {
     if (this.dropTimer) {
       clearTimeout(this.dropTimer);
       this.dropTimer = null;
@@ -101,8 +138,9 @@ export class PtyPane {
     this.dropHint.textContent = text;
     this.dropHint.hidden = false;
     this.dropHint.classList.toggle('is-error', error);
-    // Erros somem sozinhos; a dica de "solte aqui" some no dragleave/drop.
-    if (error) this.dropTimer = setTimeout(() => this.hideDrop(), 6_000);
+    this.dropHint.classList.toggle('is-toast', toast);
+    // Erros e avisos curtos somem sozinhos; a dica de "solte aqui" some no dragleave/drop.
+    if (error || toast) this.dropTimer = setTimeout(() => this.hideDrop(), ms);
   }
 
   private hideDrop(): void {
@@ -111,7 +149,7 @@ export class PtyPane {
       this.dropTimer = null;
     }
     this.dropHint.hidden = true;
-    this.dropHint.classList.remove('is-error');
+    this.dropHint.classList.remove('is-error', 'is-toast');
   }
 
   get ptyId(): string | null {
