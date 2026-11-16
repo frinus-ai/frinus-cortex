@@ -246,7 +246,7 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
   const updateToaster = new UpdateToaster(ctx, (n) => toasts.push(n));
   // Painel "Desempenho": pílula do semáforo na barra do topo + janela; também a trava gentil de abrir trabalho.
   const perf = new PerfWidget(ctx, (n) => toasts.push(n));
-  topbar.addStatus(perf.pill);
+  topbar.addRightLead(perf.pill);
   ctx.confirmOpenSession = () => perf.confirmOpen();
   // Habblaud World (em desenvolvimento): a janela própria (botão na barra do topo) e os popups de lançamento, só com
   // meta.world ligado. As Configurações só recebem dela a dica do tema em Aparência.

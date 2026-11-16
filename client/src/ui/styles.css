@@ -12028,3 +12028,119 @@ select option:checked {
   justify-content: flex-end;
   gap: 10px;
 }
+
+/* Painel Desempenho: rodapé com versão + "Atualizar Córtex" */
+.ui-perf__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ui-line);
+}
+.ui-perf__foot-ver {
+  color: var(--ui-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.ui-perf__foot-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ui-perf__foot-note {
+  color: var(--ui-faint);
+  font-size: 11px;
+}
+.ui-perf__killlist {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--lv-crit) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lv-crit) 30%, transparent);
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.ui-perf__killlist span {
+  color: var(--ui-muted);
+}
+.ui-perf__drysteps {
+  margin: 0 0 14px;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ui-text);
+}
+.ui-perf__drysteps + .ui-perf__confirm-hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  word-break: break-all;
+  background: var(--ui-bg-soft);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+}
+
+/* Aviso "Atualizando…" em tela cheia */
+.ui-perf-updating {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 7, 12, 0.72);
+  backdrop-filter: blur(2px);
+}
+.ui-perf-updating__card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  border-radius: 14px;
+  background: var(--ui-bg-solid);
+  border: 1px solid var(--ui-line-strong);
+  color: var(--ui-text);
+  max-width: min(420px, calc(100vw - 32px));
+}
+.ui-perf-updating__spin {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  border: 3px solid var(--ui-line-strong);
+  border-top-color: var(--ui-accent);
+  animation: ui-perf-spin 0.8s linear infinite;
+}
+@keyframes ui-perf-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-perf-updating__spin { animation: none; }
+}
+
+/* Estado vazio: glifo neutro do Frinus (sem a ilustração do Habblaud) */
+.ui-empty__art--glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ui-accent);
+  opacity: 0.75;
+  margin-bottom: 4px;
+}
+.ui-empty__art--glyph svg {
+  width: 72px;
+  height: 72px;
+}
+
+/* Pílula de Desempenho em tela estreita: só o semáforo (sem o texto), ainda visível */
+@media (max-width: 1040px) {
+  .ui-perfpill__text { display: none; }
+  .ui-perfpill { padding: 3px 6px; }
+}

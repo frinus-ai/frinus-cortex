@@ -53,6 +53,8 @@ export class TopBar implements UiComponent {
   /** Botão em destaque "Nova conversa com o Frinus" + a janela que ele abre (conta + pasta, ou adicionar conta). */
   private readonly newChatBtn: HTMLButtonElement;
   private readonly newChatPanel: NewChatPanel;
+  /** Bloco da direita (Nova conversa + grupos de câmera/painéis); addRightLead insere no começo dele. */
+  private readonly rightSection: HTMLElement;
 
   /** Abre a Nova conversa (também usado pelo cartão do córtex vazio). */
   openNewChat(opener?: HTMLElement | null): void {
@@ -151,6 +153,8 @@ export class TopBar implements UiComponent {
     );
     this.panelGroup = panelGroup;
 
+    this.rightSection = h('div', { class: 'ui-topbar__right' }, this.newChatBtn, viewGroup, panelGroup);
+
     this.el = h(
       'header',
       { class: 'ui-topbar', role: 'banner' },
@@ -167,13 +171,18 @@ export class TopBar implements UiComponent {
       ),
       counterWrap,
       this.usage.el,
-      h('div', { class: 'ui-topbar__right' }, this.newChatBtn, viewGroup, panelGroup),
+      this.rightSection,
     );
   }
 
   /** Acrescenta um selo à linha de status da marca, depois da versão (ex.: o chip do Habblaud World). */
   addStatus(el: HTMLElement): void {
     this.status.append(el);
+  }
+
+  /** Insere um controle no começo do bloco da direita (antes da "Nova conversa"), ex.: a pílula de Desempenho. */
+  addRightLead(el: HTMLElement): void {
+    this.rightSection.prepend(el);
   }
 
   /** Botão Mundo (troca de cena), ao lado do Timelapse. */

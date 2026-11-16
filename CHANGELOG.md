@@ -20,6 +20,22 @@ do meio (0.**3**.0).
 - **Aviso gentil ao abrir um trabalho novo quando a máquina está cheia.** No amarelo, um aviso que não atrapalha; no
   vermelho, uma confirmação (“Abrir mesmo assim”) e um atalho para ir até o trabalho mais pesado e pausá-lo ou
   fechá-lo. O Córtex nunca bloqueia nem encerra nada sozinho — a decisão é sempre sua.
+- **Botão “Atualizar Córtex” no painel Desempenho.** Mostra a versão em uso (e a mais nova, quando conhecida) e
+  instala a versão nova reiniciando o serviço. Como reiniciar fecha os trabalhos abertos, antes de executar aparece
+  uma confirmação que LISTA os trabalhos que serão interrompidos (nome · projeto · conta) e explica que poderão ser
+  retomados depois. Dá para escolher “Atualizar quando esvaziar” (espera os trabalhos terminarem). Durante a
+  atualização a página mostra “Atualizando…” e volta sozinha quando o Córtex reinicia.
+
+### Corrigido
+
+- **A versão do Córtex voltou a aparecer na barra do topo.** A pílula do semáforo de desempenho passou para o lado
+  direito da barra, ao lado de “Nova conversa”, e a versão ficou visível de novo à esquerda. A versão também aparece
+  no rodapé do painel Desempenho. Em tela estreita, a pílula fica só com a bolinha do semáforo.
+
+### Mudado
+
+- **Córtex vazio: ilustração de escritório removida.** O estado “O córtex está vazio” não mostra mais a ilustração
+  herdada do Habblaud; no lugar, um símbolo neutro do Frinus e o convite para iniciar uma conversa.
 
 ## [1.0.3] - 2026-10-16
 

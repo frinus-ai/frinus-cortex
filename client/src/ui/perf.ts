@@ -21,9 +21,16 @@ import {
   weightLabel,
   type MeterState,
 } from './perf-model';
+import { versionInfo } from './version';
 import { tr } from '../../../shared/i18n';
 
 const POLL_MS = 3_000;
+
+/** Plano devolvido por POST /api/updates/apply. */
+interface UpdateApplyResult {
+  started: boolean;
+  plan: { steps: string[]; command?: { file: string; args: string[] }; manual?: string; service?: string; dryRun: boolean; restarts: boolean };
+}
 
 async function getPerf(signal: AbortSignal): Promise<PerfSnapshot> {
   const res = await fetch('/api/perf', { cache: 'no-store', signal });
@@ -53,6 +60,13 @@ export class PerfWidget implements UiComponent {
   private readonly sessionList: HTMLElement;
   private readonly details: HTMLElement;
   private readonly status: HTMLElement;
+  // Rodapé: versão do Córtex + "Atualizar Córtex".
+  private readonly footVer: HTMLElement;
+  private readonly updateBtn: HTMLButtonElement;
+  private readonly updateNote: HTMLElement;
+  /** Quando ligado: aplica a atualização assim que não houver trabalhos abertos. */
+  private pendingWhenEmpty = false;
+  private updating = false;
 
   constructor(
     private readonly ctx: UiContext,
@@ -75,6 +89,10 @@ export class PerfWidget implements UiComponent {
     this.details = h('div', { class: 'ui-perf__detail-grid' });
     this.status = h('p', { class: 'ui-perf__status', hidden: true });
 
+    this.footVer = h('span', { class: 'ui-perf__foot-ver' });
+    this.updateBtn = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Atualizar Córtex'), on: { click: () => void this.onUpdateClick() } });
+    this.updateNote = h('span', { class: 'ui-perf__foot-note', hidden: true });
+
     const close = iconButton(ICONS.close, tr('Fechar (Esc)'), () => this.close(), 'ui-icon-btn--sm');
     this.el = h(
       'dialog',
@@ -95,6 +113,7 @@ export class PerfWidget implements UiComponent {
         h('h3', { class: 'ui-perf__subtitle', text: tr('Trabalhos abertos') }),
         this.sessionList,
         h('details', { class: 'ui-perf__details' }, h('summary', { text: tr('Detalhes (números crus)') }), this.details),
+        h('div', { class: 'ui-perf__foot' }, this.footVer, h('div', { class: 'ui-perf__foot-right' }, this.updateNote, this.updateBtn)),
       ),
     );
     this.el.addEventListener('click', (e) => {
@@ -172,6 +191,11 @@ export class PerfWidget implements UiComponent {
     }
     this.renderPill();
     if (this.el.open) this.renderPanel();
+    // "Atualizar quando esvaziar": dispara assim que não houver mais trabalhos abertos.
+    if (this.pendingWhenEmpty && !this.updating && this.snap && this.snap.sessions.length === 0) {
+      this.pendingWhenEmpty = false;
+      void this.applyUpdate();
+    }
   }
 
   // --------------------------------------------------------------------------------------------------- render
@@ -248,6 +272,37 @@ export class PerfWidget implements UiComponent {
     this.details.replaceChildren(
       ...rows.flatMap(([k, v]) => [h('dt', { text: k }), h('dd', { text: v })]),
     );
+
+    this.renderFoot();
+  }
+
+  /** Rodapé: versão do Córtex e o botão "Atualizar Córtex". */
+  private renderFoot(): void {
+    const info = versionInfo(this.ctx.store.liveSnapshot);
+    const version = info?.version;
+    const latest = info?.updates?.latest;
+    const upToDate = !!info?.updates && info.updates.state === 'ok' && info.updates.available === false && (!latest || latest === version);
+    setText(
+      this.footVer,
+      version ? (latest && latest !== version ? tr('Frinus Córtex v{0} · nova: v{1}', [version, latest]) : tr('Frinus Córtex v{0}', [version])) : tr('Frinus Córtex'),
+    );
+    if (this.updating) {
+      this.updateBtn.disabled = true;
+      setText(this.updateBtn, tr('Atualizando…'));
+      setHidden(this.updateNote, true);
+      return;
+    }
+    if (this.pendingWhenEmpty) {
+      this.updateBtn.disabled = false;
+      setText(this.updateBtn, tr('Cancelar espera'));
+      setHidden(this.updateNote, false);
+      setText(this.updateNote, tr('Vai atualizar quando os trabalhos terminarem.'));
+      return;
+    }
+    setText(this.updateBtn, tr('Atualizar Córtex'));
+    this.updateBtn.disabled = upToDate;
+    setHidden(this.updateNote, !upToDate);
+    if (upToDate) setText(this.updateNote, tr('Você já está na versão mais recente.'));
   }
 
   private goToSession(account: string, pid: number): void {
@@ -308,6 +363,161 @@ export class PerfWidget implements UiComponent {
       dlg.showModal();
       cancel.focus();
     });
+  }
+
+  // ----------------------------------------------------------------------------------------- Atualizar Córtex
+  private async onUpdateClick(): Promise<void> {
+    if (this.updating) return;
+    if (this.pendingWhenEmpty) {
+      this.pendingWhenEmpty = false;
+      this.renderFoot();
+      this.ctx.announce(tr('Espera cancelada.'));
+      return;
+    }
+    this.openUpdateConfirm();
+  }
+
+  /** Diálogo que LISTA os trabalhos que serão fechados antes de atualizar e reiniciar. */
+  private openUpdateConfirm(): void {
+    const sessions = this.snap?.sessions ?? [];
+    const info = versionInfo(this.ctx.store.liveSnapshot);
+    let done = false;
+    const finish = (): void => {
+      if (done) return;
+      done = true;
+      if (dlg.open) dlg.close();
+      dlg.remove();
+    };
+
+    const list = sessions.length
+      ? h(
+          'ul',
+          { class: 'ui-perf__killlist' },
+          ...sessions.map((s) => h('li', {}, h('strong', { text: s.name }), h('span', { text: ` — ${s.project} · ${s.account}` }))),
+        )
+      : h('p', { class: 'ui-perf__confirm-hint', text: tr('Nenhum trabalho aberto agora: nada será interrompido.') });
+
+    const doNow = h('button', { class: 'ui-btn ui-btn--danger', type: 'button', text: tr('Atualizar e reiniciar'), on: { click: () => { finish(); void this.applyUpdate(); } } });
+    const actions: HTMLElement[] = [h('button', { class: 'ui-btn', type: 'button', text: tr('Cancelar'), on: { click: () => finish() } })];
+    if (sessions.length) {
+      actions.push(h('button', { class: 'ui-btn', type: 'button', text: tr('Atualizar quando esvaziar'), on: { click: () => { this.pendingWhenEmpty = true; this.renderFoot(); finish(); this.ctx.announce(tr('Vai atualizar quando os trabalhos terminarem.')); } } }));
+    }
+    actions.push(doNow);
+
+    const title = info?.updates?.latest && info.updates.latest !== info.version ? tr('Atualizar para a v{0}?', [info.updates.latest]) : tr('Atualizar o Frinus Córtex?');
+    const dlg = h(
+      'dialog',
+      { class: 'ui-dialog ui-perf-confirm ui-perf-update', attrs: { 'aria-labelledby': 'ui-perf-update-title' } },
+      h('div', { class: 'ui-dialog__head' }, h('h2', { text: title, attrs: { id: 'ui-perf-update-title' } })),
+      h(
+        'div',
+        { class: 'ui-perf-confirm__body' },
+        h('p', { class: 'ui-perf__confirm-msg', text: sessions.length ? tr('Para atualizar, o Córtex reinicia — e isso INTERROMPE os trabalhos abaixo. Eles podem ser retomados depois.') : tr('O Córtex vai reiniciar para instalar a versão nova. A página volta sozinha quando terminar.') }),
+        list,
+        h('div', { class: 'ui-perf-confirm__actions' }, ...actions),
+      ),
+    );
+    dlg.addEventListener('cancel', (e) => { e.preventDefault(); finish(); });
+    dlg.addEventListener('keydown', (e) => e.stopPropagation());
+    this.ctx.root.append(dlg);
+    dlg.showModal();
+    actions[0].focus();
+  }
+
+  /** Dispara POST /api/updates/apply. No dry-run só mostra o que FARIA; de verdade, mostra "Atualizando…" e recarrega. */
+  private async applyUpdate(): Promise<void> {
+    if (this.updating) return;
+    this.updating = true;
+    this.renderFoot();
+    let result: UpdateApplyResult;
+    try {
+      // Content-Type JSON é exigido como barreira contra CSRF (ver server/http/guard.ts), mesmo sem corpo.
+      const res = await fetch('/api/updates/apply', { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const body = (await res.json().catch(() => null)) as (UpdateApplyResult & { error?: string }) | null;
+      if (!res.ok || !body) throw new Error(body?.error ?? tr('erro {0}', [res.status]));
+      result = body;
+    } catch (err) {
+      this.updating = false;
+      this.renderFoot();
+      this.toast({ id: `perf-upd-${Date.now()}`, level: 'warn', at: Date.now(), text: tr('Não deu para atualizar: {0}', [(err as Error).message]) });
+      return;
+    }
+
+    if (result.plan.manual) {
+      this.updating = false;
+      this.renderFoot();
+      this.toast({ id: `perf-upd-${Date.now()}`, level: 'info', at: Date.now(), text: result.plan.manual });
+      return;
+    }
+    if (result.plan.dryRun || !result.started) {
+      // Simulação: nada foi instalado nem reiniciado. Mostra os passos que seriam executados.
+      this.updating = false;
+      this.renderFoot();
+      this.showDryRun(result);
+      return;
+    }
+    // De verdade: o servidor vai reiniciar. Mostra o aviso e recarrega quando voltar.
+    this.showUpdatingOverlay();
+    void this.pollUntilBack();
+  }
+
+  private showDryRun(result: UpdateApplyResult): void {
+    const steps = result.plan.steps.map((s) => h('li', { text: s }));
+    const close = h('button', { class: 'ui-btn', type: 'button', text: tr('Entendi') });
+    const dlg = h(
+      'dialog',
+      { class: 'ui-dialog ui-perf-confirm', attrs: { 'aria-labelledby': 'ui-perf-dry-title' } },
+      h('div', { class: 'ui-dialog__head' }, h('h2', { text: tr('Simulação — nada foi alterado'), attrs: { id: 'ui-perf-dry-title' } })),
+      h(
+        'div',
+        { class: 'ui-perf-confirm__body' },
+        h('p', { class: 'ui-perf__confirm-msg', text: tr('O modo de teste está ligado (FRINUS_CORTEX_UPDATE_DRYRUN). Estes passos SERIAM executados:') }),
+        h('ol', { class: 'ui-perf__drysteps' }, ...steps),
+        result.plan.command ? h('p', { class: 'ui-perf__confirm-hint', text: `${result.plan.command.file} ${result.plan.command.args.join(' ')}` }) : null,
+        h('div', { class: 'ui-perf-confirm__actions' }, close),
+      ),
+    );
+    close.addEventListener('click', () => { if (dlg.open) dlg.close(); dlg.remove(); });
+    dlg.addEventListener('cancel', (e) => { e.preventDefault(); if (dlg.open) dlg.close(); dlg.remove(); });
+    dlg.addEventListener('keydown', (e) => e.stopPropagation());
+    this.ctx.root.append(dlg);
+    dlg.showModal();
+    close.focus();
+  }
+
+  private showUpdatingOverlay(): void {
+    const overlay = h(
+      'div',
+      { class: 'ui-perf-updating', attrs: { role: 'status', 'aria-live': 'polite' } },
+      h('div', { class: 'ui-perf-updating__card' }, h('div', { class: 'ui-perf-updating__spin', attrs: { 'aria-hidden': 'true' } }), h('p', { text: tr('Atualizando o Frinus Córtex… a página volta sozinha quando terminar.') })),
+    );
+    overlay.id = 'ui-perf-updating';
+    this.ctx.root.append(overlay);
+  }
+
+  /** Espera o servidor voltar depois do reinício e recarrega a página. */
+  private async pollUntilBack(): Promise<void> {
+    const start = Date.now();
+    let wentDown = false;
+    while (Date.now() - start < 180_000) {
+      await new Promise((r) => setTimeout(r, 2000));
+      let ok = false;
+      try {
+        const res = await fetch('/api/updates', { cache: 'no-store' });
+        ok = res.ok;
+      } catch {
+        ok = false;
+      }
+      if (!ok) wentDown = true;
+      else if (wentDown) {
+        location.reload();
+        return;
+      }
+    }
+    // Não voltou a tempo: tira o aviso para a pessoa poder recarregar à mão.
+    document.getElementById('ui-perf-updating')?.remove();
+    this.updating = false;
+    this.toast({ id: `perf-upd-${Date.now()}`, level: 'warn', at: Date.now(), text: tr('O Córtex está demorando a voltar. Recarregue a página em instantes.') });
   }
 }
 

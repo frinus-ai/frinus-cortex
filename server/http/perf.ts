@@ -294,6 +294,14 @@ export interface PerfMonitorOptions {
   platform?: NodeJS.Platform;
   env?: Record<string, string | undefined>;
   now?: () => number;
+  /** Força o semáforo num nível fixo, só para o founder ver amarelo/vermelho (FRINUS_CORTEX_PERF_SIMULATE). */
+  simulate?: PerfLevel;
+}
+
+/** Lê FRINUS_CORTEX_PERF_SIMULATE: "green" | "yellow" | "red" (qualquer outra coisa = desligado). */
+export function parsePerfSimulate(value: string | undefined): PerfLevel | undefined {
+  const v = value?.trim().toLowerCase();
+  return v === 'green' || v === 'yellow' || v === 'red' ? v : undefined;
 }
 
 /**
@@ -314,6 +322,8 @@ export class PerfMonitor {
   private timer: ReturnType<typeof setInterval> | null = null;
   private cgroupPath?: string;
   private cgroupResolved = false;
+  /** Semáforo forçado para demonstração (FRINUS_CORTEX_PERF_SIMULATE); undefined = usa o nível real. */
+  private readonly simulate?: PerfLevel;
   /** jiffies da árvore de cada sessão na varredura anterior, para o % de processador (Linux). */
   private treeCpu = new Map<number, { jiffies: number; at: number }>();
 
@@ -329,6 +339,7 @@ export class PerfMonitor {
     }
     this.perfPlatform = detectPlatform(this.platform, procVersion, env);
     this.now = opts.now ?? Date.now;
+    this.simulate = opts.simulate;
   }
 
   /** Liga o amostrador em segundo plano (idempotente). Não segura o processo vivo (unref). */
@@ -563,24 +574,27 @@ export class PerfMonitor {
     sessions.sort((a, b) => b.memMb - a.memMb);
     const budget = computeBudget(sys.ramTotalMb * MB, sessions.length);
     const heaviest = sessions[0];
+    const level = this.simulate ?? this.level;
     const snap: PerfSnapshot = {
       platform: this.perfPlatform,
-      level: this.level,
-      summary: laySummary(this.level, budget.freeSessions),
+      level,
+      summary: laySummary(level, budget.freeSessions),
       system: sys,
       cortex,
       budget,
       sessions,
       sampledAt: this.lastSample?.at ?? this.now(),
     };
-    if (heaviest && heaviest.weight !== 'light') snap.heaviestPid = heaviest.pid;
+    // Marca a mais pesada quando ela pesa de verdade — ou sempre que o modo demonstração está ligado, para o
+    // founder ver o banner vermelho mesmo com sessões leves.
+    if (heaviest && (heaviest.weight !== 'light' || this.simulate)) snap.heaviestPid = heaviest.pid;
     return snap;
   }
 
   private lastSys?: PerfSystem;
 
   get currentLevel(): PerfLevel {
-    return this.level;
+    return this.simulate ?? this.level;
   }
 }
 
