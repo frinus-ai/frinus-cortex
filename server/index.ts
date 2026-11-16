@@ -369,7 +369,8 @@ perfMonitor.start();
 
 // "Atualizar Córtex": instala a versão nova e reinicia o serviço (fecha as sessões). dryRun por FRINUS_CORTEX_UPDATE_DRYRUN
 // (a instância de teste roda sempre com =1). Plataforma/systemd detectados de forma leve; o executor real só roda fora
-// do dryRun. O serviço vem de FRINUS_OFFICE_SERVICE (posto pelo instalador no Exec do systemd).
+// do dryRun. O nome do serviço vem de FRINUS_CORTEX_SERVICE (FRINUS_OFFICE_SERVICE: legado) e, sem eles, assume o
+// padrão do instalador: frinus-cortex (o serviço systemd --user não grava esse env, então o default é o que vale).
 const updatePlatform: UpdatePlatform = (() => {
   let procVersion: string | undefined;
   try {
@@ -382,7 +383,7 @@ const updatePlatform: UpdatePlatform = (() => {
 const hasSystemd = (updatePlatform === 'linux' || updatePlatform === 'wsl') && !!process.env.XDG_RUNTIME_DIR && existsSync(join(process.env.XDG_RUNTIME_DIR, 'systemd'));
 const updateApplier = new UpdateApplier({
   rootDir: config.rootDir,
-  service: process.env.FRINUS_OFFICE_SERVICE?.trim() || undefined,
+  service: process.env.FRINUS_CORTEX_SERVICE?.trim() || process.env.FRINUS_OFFICE_SERVICE?.trim() || 'frinus-cortex',
   platform: updatePlatform,
   hasSystemd,
   launchdLabel: process.env.FRINUS_CORTEX_LAUNCHD_LABEL?.trim() || undefined,

@@ -28,9 +28,9 @@ export interface UpdatePlan {
 }
 
 export interface UpdateApplierOptions {
-  /** Raiz do fork (onde está frinus/bin/install-office.sh). */
+  /** Raiz do fork (onde está frinus/bin/update-cortex.sh). */
   rootDir: string;
-  /** Nome do serviço systemd --user (FRINUS_OFFICE_SERVICE); sem ele, só o plano manual. */
+  /** Nome do serviço systemd --user (FRINUS_CORTEX_SERVICE; padrão frinus-cortex); sem ele, só o plano manual. */
   service?: string;
   platform: UpdatePlatform;
   /** Há systemd --user disponível? (Linux/WSL). */
@@ -52,11 +52,12 @@ export interface UpdateApplierOptions {
 export function defaultUpdateScript(rootDir: string, service: string, custom?: string): string {
   if (custom && custom.trim()) return custom;
   const q = (s: string): string => `'${s.replace(/'/g, `'\\''`)}'`;
+  // update-cortex.sh BAIXA a versão pronta da release (confere o SHA-256 e faz a troca atômica em
+  // ~/.local/share/frinus-cortex) e então roda o install-cortex.sh, que reinstala e REINICIA o serviço.
+  // Não é o install-office.sh local: aquele só recompilaria a versão EM USO, sem baixar a nova.
   return [
     'set -e',
-    `cd ${q(rootDir)}`,
-    `bash ${q(`${rootDir}/frinus/bin/install-office.sh`)} --service ${q(service)}`,
-    `systemctl --user restart ${q(`${service}.service`)}`,
+    `bash ${q(`${rootDir}/frinus/bin/update-cortex.sh`)} --service ${q(service)}`,
   ].join('\n');
 }
 
@@ -94,7 +95,7 @@ export class UpdateApplier {
       };
     }
     if (platform === 'darwin' && launchdLabel) {
-      const script = updateCmd?.trim() || `cd '${rootDir}' && bash '${rootDir}/frinus/bin/install-office.sh'`;
+      const script = updateCmd?.trim() || `cd '${rootDir}' && bash '${rootDir}/frinus/bin/update-cortex.sh'`;
       return {
         steps: [
           tr('Baixar e instalar a versão nova do Frinus Córtex.'),
@@ -108,7 +109,7 @@ export class UpdateApplier {
       };
     }
     // Sem como automatizar: devolve o comando para a pessoa rodar à mão.
-    const manualCmd = `bash '${rootDir}/frinus/bin/install-office.sh'${service ? ` --service '${service}'` : ''}`;
+    const manualCmd = `bash '${rootDir}/frinus/bin/update-cortex.sh'${service ? ` --service '${service}'` : ''}`;
     return {
       steps: [tr('Este Córtex não dá para atualizar sozinho por aqui.')],
       manual: tr('Rode no terminal: {0}', [manualCmd]),

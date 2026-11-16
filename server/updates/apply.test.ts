@@ -11,10 +11,13 @@ const base = {
 };
 
 describe('defaultUpdateScript', () => {
-  it('roda o instalador e reinicia o serviço', () => {
-    const s = defaultUpdateScript('/root', 'frinus-office');
-    expect(s).toContain("bash '/root/frinus/bin/install-office.sh' --service 'frinus-office'");
-    expect(s).toContain("systemctl --user restart 'frinus-office.service'");
+  it('baixa a versão nova (update-cortex.sh) — o install-cortex.sh reinicia o serviço', () => {
+    const s = defaultUpdateScript('/root', 'frinus-cortex');
+    expect(s).toContain("bash '/root/frinus/bin/update-cortex.sh' --service 'frinus-cortex'");
+    // NÃO roda o install-office.sh local (recompilaria a versão em uso), nem um systemctl restart solto
+    // (o install-cortex.sh, chamado pelo update-cortex.sh, é quem reinicia o serviço).
+    expect(s).not.toContain('install-office.sh');
+    expect(s).not.toContain('systemctl');
   });
   it('respeita um comando custom', () => {
     expect(defaultUpdateScript('/root', 'svc', 'echo oi')).toBe('echo oi');
@@ -41,7 +44,7 @@ describe('buildPlan', () => {
   it('sem systemd nem serviço: plano manual, sem comando', () => {
     const plan = new UpdateApplier({ ...base, hasSystemd: false, service: undefined, dryRun: true }).buildPlan();
     expect(plan.command).toBeUndefined();
-    expect(plan.manual).toContain('install-office.sh');
+    expect(plan.manual).toContain('update-cortex.sh');
     expect(plan.restarts).toBe(false);
   });
 });

@@ -23,10 +23,14 @@ vi.mock('./toasts');
 vi.mock('./version');
 vi.mock('./update');
 vi.mock('./viewport');
+// PerfWidget faz GET /api/perf ao iniciar; sem este mock ele consome uma resposta da fila de fetch abaixo
+// (feita só para /api/timeline/*) e a linha do tempo recebe o corpo errado. Auto-mock = sem fetch nem pílula.
+vi.mock('./perf');
 vi.mock('./topbar', () => ({ TopBar: class {
   panelGroup = { prepend() {} };
   addPanelButton() {}
   addStatus() {}
+  addRightLead() {}
   render() {}
 } }));
 
