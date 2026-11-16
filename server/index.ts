@@ -93,6 +93,8 @@ const updates = new UpdateChecker({
   enabled: config.updateCheck,
   file: join(config.dataDir, 'updates.json'),
   onChange: () => late.office?.markDirty(),
+  // Só para teste: finge que esta versão é a mais nova (sem consultar o GitHub).
+  simulateLatest: process.env.FRINUS_CORTEX_UPDATE_SIMULATE_LATEST?.trim() || undefined,
 });
 updates.load();
 // Habblaud World (server/world/): a conta e o personagem neste computador. Ligado por padrão (server.habblaud.com, ou

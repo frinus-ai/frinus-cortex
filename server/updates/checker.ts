@@ -78,6 +78,11 @@ export interface UpdateCheckerOptions {
   now?: () => number;
   /** O status mudou (o servidor republica o snapshot). */
   onChange?: () => void;
+  /**
+   * Só para teste (FRINUS_CORTEX_UPDATE_SIMULATE_LATEST): finge que esta versão é a mais recente, sem consultar o
+   * GitHub. Com ela, `status()` reporta `available` conforme a comparação com a versão em uso.
+   */
+  simulateLatest?: string;
 }
 
 export class UpdateChecker {
@@ -95,11 +100,28 @@ export class UpdateChecker {
     this.now = opts.now ?? Date.now;
   }
 
+  /** Versão simulada válida (FRINUS_CORTEX_UPDATE_SIMULATE_LATEST), quando for um número de versão legível. */
+  private get simulateLatest(): string | undefined {
+    const v = this.opts.simulateLatest?.trim();
+    return v && parseVersion(v) ? v : undefined;
+  }
+
   get enabled(): boolean {
-    return this.opts.enabled && !!this.opts.repo;
+    // Em simulação, não consulta o GitHub (start/check viram no-op), mas status() reporta a versão simulada.
+    return !this.simulateLatest && this.opts.enabled && !!this.opts.repo;
   }
 
   status(): UpdateStatus {
+    const sim = this.simulateLatest;
+    if (sim) {
+      return {
+        state: 'ok',
+        repo: this.opts.repo,
+        checkedAt: this.now(),
+        latest: sim,
+        available: compareVersions(sim, this.opts.current) > 0,
+      };
+    }
     if (!this.enabled) return { state: 'off', repo: this.opts.repo, available: false };
     const c = this.cache;
     return {

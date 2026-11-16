@@ -198,3 +198,24 @@ describe('UpdateChecker', () => {
     }
   });
 });
+
+describe('simulateLatest (FRINUS_CORTEX_UPDATE_SIMULATE_LATEST)', () => {
+  it('reporta a versão simulada como disponível, sem consultar o GitHub', () => {
+    const c = new UpdateChecker({ current: '1.0.3', repo: 'frinus-ai/frinus-cortex', enabled: false, file: null, simulateLatest: '1.0.5' });
+    const s = c.status();
+    expect(s.state).toBe('ok');
+    expect(s.latest).toBe('1.0.5');
+    expect(s.available).toBe(true);
+    expect(c.enabled).toBe(false); // não liga a consulta real
+  });
+
+  it('não marca disponível quando a simulada não é maior que a atual', () => {
+    const c = new UpdateChecker({ current: '1.0.5', repo: 'x/y', enabled: false, file: null, simulateLatest: '1.0.5' });
+    expect(c.status().available).toBe(false);
+  });
+
+  it('ignora um valor de simulação inválido', () => {
+    const c = new UpdateChecker({ current: '1.0.3', repo: 'x/y', enabled: true, file: null, simulateLatest: 'nope' });
+    expect(c.status().latest).toBeUndefined();
+  });
+});

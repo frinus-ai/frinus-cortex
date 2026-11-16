@@ -12144,3 +12144,37 @@ select option:checked {
   .ui-perfpill__text { display: none; }
   .ui-perfpill { padding: 3px 6px; }
 }
+
+/* Versão na barra do topo como controle de atualização: o texto "v… · Atualizar" fica visível (sobrepõe o colapso
+   para só-ícone do antigo selo "Nova versão"), menos em tela de celular (onde a versão já some). */
+.ui-version.is-new .ui-version__text {
+  display: inline;
+}
+@media (max-width: 1040px) {
+  .ui-version.is-new .ui-version__text { display: none; }
+}
+
+/* Sobre › Versão: estado da verificação + "Verificar agora" e "Atualizar Córtex" */
+.ui-about__version-sec {
+  margin: 10px 0 12px;
+}
+.ui-about__subhead {
+  margin: 0 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ui-faint);
+}
+.ui-about__verstatus {
+  margin: 0 0 8px;
+}
+.ui-about__ver-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ui-about__updnote {
+  color: var(--ui-faint);
+  font-size: 12px;
+}

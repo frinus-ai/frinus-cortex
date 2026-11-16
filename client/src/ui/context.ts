@@ -92,4 +92,9 @@ export interface UiContext {
    * sem bloquear e segue; no 🔴 pede confirmação ("Abrir mesmo assim"). Ausente = nenhum painel de desempenho montado.
    */
   confirmOpenSession?(): Promise<boolean>;
+  /**
+   * Abre o fluxo de "Atualizar Córtex" (ui/update-flow.ts): confirmação que lista os trabalhos que serão fechados,
+   * "Atualizar quando esvaziar" e dry-run. Chamado pela versão na barra do topo e pelo Sobre. Ausente = sem o fluxo.
+   */
+  startUpdate?(): void;
 }

@@ -26,6 +26,7 @@ import { hasRunningShells } from './model';
 import { hasCodexPermission } from './provider';
 import { Notifier } from './notify';
 import { PerfWidget } from './perf';
+import { UpdateFlow } from './update-flow';
 import { ConnectionBanner, EmptyState, Splash } from './overlays';
 import { focusPermission, nextPermissionAgent } from './permission';
 import { loadPrefs, safeLocalStorage, savePrefs, worldOptionsFrom, type UiPrefs } from './prefs';
@@ -248,6 +249,9 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
   const perf = new PerfWidget(ctx, (n) => toasts.push(n));
   topbar.addRightLead(perf.pill);
   ctx.confirmOpenSession = () => perf.confirmOpen();
+  // Fluxo "Atualizar Córtex": acionado pela versão na barra do topo (quando há versão nova) e pelo Sobre.
+  const updateFlow = new UpdateFlow(ctx, (n) => toasts.push(n));
+  ctx.startUpdate = () => updateFlow.start();
   // Habblaud World (em desenvolvimento): a janela própria (botão na barra do topo) e os popups de lançamento, só com
   // meta.world ligado. As Configurações só recebem dela a dica do tema em Aparência.
   const hw = worldSource(store);

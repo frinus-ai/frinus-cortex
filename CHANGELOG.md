@@ -20,11 +20,14 @@ do meio (0.**3**.0).
 - **Aviso gentil ao abrir um trabalho novo quando a máquina está cheia.** No amarelo, um aviso que não atrapalha; no
   vermelho, uma confirmação (“Abrir mesmo assim”) e um atalho para ir até o trabalho mais pesado e pausá-lo ou
   fechá-lo. O Córtex nunca bloqueia nem encerra nada sozinho — a decisão é sempre sua.
-- **Botão “Atualizar Córtex” no painel Desempenho.** Mostra a versão em uso (e a mais nova, quando conhecida) e
-  instala a versão nova reiniciando o serviço. Como reiniciar fecha os trabalhos abertos, antes de executar aparece
-  uma confirmação que LISTA os trabalhos que serão interrompidos (nome · projeto · conta) e explica que poderão ser
-  retomados depois. Dá para escolher “Atualizar quando esvaziar” (espera os trabalhos terminarem). Durante a
-  atualização a página mostra “Atualizando…” e volta sozinha quando o Córtex reinicia.
+- **Atualizar o Córtex pela própria versão na barra do topo.** Quando há versão nova, o número da versão vira um
+  controle claro (“v1.0.3 · Atualizar”) que instala a versão nova reiniciando o serviço. Como reiniciar fecha os
+  trabalhos abertos, antes de executar aparece uma confirmação que LISTA os trabalhos que serão interrompidos
+  (nome · projeto · conta) e explica que poderão ser retomados depois. Dá para escolher “Atualizar quando esvaziar”
+  (espera os trabalhos terminarem). Durante a atualização a página mostra “Atualizando…” e volta sozinha quando o
+  Córtex reinicia. Sem versão nova, o número fica discreto e leva ao “Sobre”.
+- **Seção “Versão” no Sobre (Configurações).** Mostra a versão em uso, a última verificação, um botão “Verificar
+  agora” e o botão “Atualizar Córtex” (desabilitado, com “Você já está na versão mais recente”, quando for o caso).
 
 ### Corrigido
 
