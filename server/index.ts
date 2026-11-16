@@ -10,6 +10,7 @@ import { AccountsService } from './accounts/service';
 import { isTruthy, loadConfig, messagesOffReason, terminalOffReason, worldSocketUrl } from './config';
 import { createApiHandler, sendJson } from './http/app';
 import { createFrinusRoutes } from './http/frinus';
+import { createPerfRoutes, PerfMonitor, type PerfSessionRef } from './http/perf';
 import { createRequestGuard, isLoopbackHost } from './http/guard';
 import { createRemoteGate, isRemoteRequest, loadSecret, RemoteSessions, startRemoteListener, type RemoteListener } from './http/remote';
 import { Hub } from './http/sse';
@@ -344,6 +345,23 @@ const ticker = setInterval(() => {
   }
 }, 250);
 
+// Painel "Desempenho": as sessões ativas são os agentes principais do Claude Code (o id é "<conta>:<pid>"), onde o pid
+// é o processo cuja árvore (Claude Code + servidores MCP) o painel soma. Subagentes rodam dentro do principal e não
+// contam. O amostrador roda em segundo plano (unref: não segura o processo vivo).
+const perfMonitor = new PerfMonitor({
+  sessions: (): PerfSessionRef[] => {
+    const out: PerfSessionRef[] = [];
+    for (const a of office.list()) {
+      if (a.kind !== 'main' || (a.provider ?? 'claude') !== 'claude') continue;
+      const pid = Number(a.id.split(':')[1]);
+      if (!Number.isSafeInteger(pid) || pid <= 0) continue;
+      out.push({ pid, name: a.name, project: office.roomName(a.roomId), account: a.account });
+    }
+    return out;
+  },
+});
+perfMonitor.start();
+
 const api = createApiHandler({
   renameRoom: (id, name) => {
     const path = office.roomPath(id);
@@ -391,6 +409,7 @@ const api = createApiHandler({
     rescan: () => accounts.rediscover(),
     installMod: (dir) => installModInAccount(dir),
   }),
+  perf: createPerfRoutes(perfMonitor),
 });
 
 /**

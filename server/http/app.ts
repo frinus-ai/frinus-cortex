@@ -107,6 +107,11 @@ export interface ApiDeps {
    * em nome de um acesso remoto. Devolve false para o que não é dela.
    */
   frinus?: (req: IncomingMessage, res: ServerResponse, url: URL) => boolean;
+  /**
+   * Painel "Desempenho" (GET /api/perf, server/http/perf.ts): RAM, processador, swap, PSI e o quanto cada sessão
+   * consome. Mesma exposição das rotas de leitura. Devolve false para o que não é dela.
+   */
+  perf?: (req: IncomingMessage, res: ServerResponse, url: URL, send: (res: ServerResponse, status: number, body: unknown) => void) => boolean;
 }
 
 /** GET /api/agents/:id/terminal (ids nunca contêm '/'). */
@@ -751,6 +756,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       }
       return true;
     }
+    if (deps.perf?.(req, res, url, sendJson)) return true;
     if (deps.timeline?.(req, res, url)) return true;
     if (deps.frinus?.(req, res, url)) return true;
     sendJson(res, 404, { error: tr('rota desconhecida') });

@@ -10,6 +10,17 @@ do meio (0.**3**.0).
 
 ## [Não lançado]
 
+### Adicionado
+
+- **Painel “Desempenho”: veja o quanto a máquina aguenta e o que cada trabalho está consumindo.** Uma pílula com um
+  semáforo (🟢 tranquilo · 🟡 enchendo · 🔴 cheio) fica sempre visível na barra do topo e abre uma janela com uma
+  frase simples (“Tudo tranquilo — cabem mais 3 trabalhos”), três medidores (Memória, Processador e Folga para abrir
+  trabalho) e a lista dos trabalhos abertos, cada um com o peso (leve / médio / pesado) e o mais pesado em destaque.
+  Os números crus (RAM, swap, pressão de memória, teto do Córtex) ficam em “Detalhes”.
+- **Aviso gentil ao abrir um trabalho novo quando a máquina está cheia.** No amarelo, um aviso que não atrapalha; no
+  vermelho, uma confirmação (“Abrir mesmo assim”) e um atalho para ir até o trabalho mais pesado e pausá-lo ou
+  fechá-lo. O Córtex nunca bloqueia nem encerra nada sozinho — a decisão é sempre sua.
+
 ## [1.0.3] - 2026-10-16
 
 ### Corrigido
