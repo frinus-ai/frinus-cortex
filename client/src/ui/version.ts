@@ -66,6 +66,9 @@ export class VersionChip implements UiComponent {
   readonly el: HTMLButtonElement;
   private text: HTMLElement;
 
+  /** Lembra o último estado "tem atualização" para o clique decidir entre abrir o fluxo e abrir o Sobre. */
+  private fresh = false;
+
   constructor(
     private ctx: UiContext,
     private settingsBtn: HTMLElement,
@@ -73,21 +76,24 @@ export class VersionChip implements UiComponent {
     const icon = h('span', { class: 'ui-version__icon', attrs: { 'aria-hidden': 'true' } });
     icon.innerHTML = VERSION_ICONS.up;
     this.text = h('span', { class: 'ui-version__text' });
-    this.el = h('button', { class: 'ui-version', type: 'button', hidden: true, on: { click: () => ctx.openAbout() } }, icon, this.text);
+    // Com versão nova, o clique abre o fluxo de atualização (confirmação + dry-run); sem, leva ao Sobre.
+    this.el = h('button', { class: 'ui-version', type: 'button', hidden: true, on: { click: () => (this.fresh && this.ctx.startUpdate ? this.ctx.startUpdate() : this.ctx.openAbout()) } }, icon, this.text);
   }
 
   render(): void {
     const info = versionInfo(this.ctx.store.liveSnapshot);
     setHidden(this.el, !info);
     const fresh = !!info?.updates?.available && !!info.updates.latest;
+    this.fresh = fresh;
     this.settingsBtn.classList.toggle('has-update', fresh);
     const label = fresh ? tr('Configurações (nova versão disponível)') : tr('Configurações');
     setAttr(this.settingsBtn, 'aria-label', label);
     setTitle(this.settingsBtn, label);
     if (!info) return;
     this.el.classList.toggle('is-new', fresh);
-    setText(this.text, fresh ? tr('Nova versão') : `v${info.version}`);
-    const title = versionChipTitle(info.version, info.updates, this.ctx.now());
+    // Com versão nova vira um controle claro: "v{atual} · Atualizar"; sem, só o número discreto.
+    setText(this.text, fresh ? tr('v{0} · Atualizar', [info.version]) : `v${info.version}`);
+    const title = fresh && info.updates?.latest ? tr('Nova versão v{0} (você usa a v{1}). Clique para atualizar.', [info.updates.latest, info.version]) : versionChipTitle(info.version, info.updates, this.ctx.now());
     setTitle(this.el, title);
     setAttr(this.el, 'aria-label', title);
   }
@@ -129,17 +135,36 @@ const FRINUS_PANEL_URL = 'https://frinus.rdxsec.com.br/integrations/frinus-corte
 export class AboutGroup {
   readonly el: HTMLElement;
   private name: HTMLElement;
+  private verStatus: HTMLElement;
+  private checkBtn: HTMLButtonElement;
+  private updateBtn: HTMLButtonElement;
+  private updateNote: HTMLElement;
+  private checking = false;
 
   constructor(private ctx: UiContext) {
     this.name = h('strong', { class: 'ui-about__version' });
     const panel = h('a', { class: 'ui-link-btn', text: tr('Abrir o painel do Frinus'), attrs: { href: FRINUS_PANEL_URL, target: '_blank', rel: 'noopener noreferrer' } });
+
+    // Seção "Versão": versão atual, última verificação, "Verificar agora" e "Atualizar Córtex".
+    this.verStatus = h('p', { class: 'ui-set__hint ui-about__verstatus' });
+    this.checkBtn = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Verificar agora'), on: { click: () => void this.checkNow() } });
+    this.updateBtn = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Atualizar Córtex'), on: { click: () => this.ctx.startUpdate?.() } });
+    this.updateNote = h('span', { class: 'ui-about__updnote', hidden: true });
+    const verSection = h(
+      'div',
+      { class: 'ui-about__version-sec' },
+      h('h4', { class: 'ui-about__subhead', text: tr('Versão') }),
+      this.verStatus,
+      h('div', { class: 'ui-about__ver-actions' }, this.checkBtn, this.updateBtn, this.updateNote),
+    );
+
     this.el = h(
       'div',
       { class: 'ui-set-group ui-about', attrs: { id: 'ui-about' } },
       h('h3', { text: tr('Sobre'), tabIndex: -1 }),
       h('div', { class: 'ui-about__head' }, h('span', { class: 'ui-about__name' }, 'Frinus Córtex ', this.name)),
       h('p', { class: 'ui-set__hint', text: tr('A interface visual do Frinus: acompanhe seus agentes trabalhando e converse com o Frinus, com a memória da sua empresa, sem abrir o terminal.') }),
-      h('p', { class: 'ui-set__hint', text: tr('Para atualizar, baixe e rode de novo o instalador do Frinus Córtex no painel do Frinus (Integrações › Frinus Córtex). Suas conversas e configurações são mantidas.') }),
+      verSection,
       panel,
       h('p', { class: 'ui-set__hint', text: tr('Frinus · RDX Security') }),
     );
@@ -149,6 +174,42 @@ export class AboutGroup {
     const info = versionInfo(this.ctx.store.liveSnapshot);
     setHidden(this.name, !info);
     if (info) setText(this.name, `v${info.version}`);
+
+    const updates = info?.updates;
+    const latest = updates?.latest;
+    const fresh = !!updates?.available && !!latest;
+    const upToDate = !!updates && updates.state === 'ok' && updates.available === false && (!latest || latest === info?.version);
+    // Linha de estado: usa o texto canônico da verificação (ui/version.ts).
+    if (this.checking) setText(this.verStatus, tr('Verificando se há versão nova…'));
+    else if (info) setText(this.verStatus, updateStatusLine(info.version, updates, this.ctx.now()).text);
+    else setText(this.verStatus, '');
+
+    const checkable = !!updates && updates.state !== 'off';
+    setHidden(this.checkBtn, !checkable);
+    this.checkBtn.disabled = this.checking;
+
+    // Botão "Atualizar": habilitado quando há atualização OU quando a verificação está desligada (atualizar = rodar o
+    // instalador); desabilitado só quando sabemos que já está na mais recente.
+    const canUpdate = !!this.ctx.startUpdate && (fresh || !checkable);
+    this.updateBtn.disabled = !canUpdate || upToDate;
+    setText(this.updateBtn, fresh && latest ? tr('Atualizar para v{0}', [latest]) : tr('Atualizar Córtex'));
+    setHidden(this.updateNote, !upToDate);
+    if (upToDate) setText(this.updateNote, tr('Você já está na versão mais recente.'));
+  }
+
+  /** "Verificar agora": POST /api/updates/check. O resultado chega pelo snapshot (SSE) e o render se atualiza. */
+  private async checkNow(): Promise<void> {
+    if (this.checking) return;
+    this.checking = true;
+    this.render();
+    try {
+      await fetch('/api/updates/check', { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    } catch {
+      // erro de rede: o texto de estado volta ao normal no próximo render
+    } finally {
+      this.checking = false;
+      this.ctx.invalidate();
+    }
   }
 
   /** Rola até a seção e a destaca por um instante (clique no número da versão). */

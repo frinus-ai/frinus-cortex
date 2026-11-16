@@ -3,6 +3,7 @@
 //   npm run dev    -> tsx server/index.ts --dev (Vite em middleware mode, HMR no mesmo servidor)
 //   npm start      -> node dist/server/index.js (serve dist/client)
 import { execFile } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 import http from 'node:http';
 import { join } from 'node:path';
 import { codexDirsRefused, discoverClaudeDirs, isDefaultDir } from './accounts/detect';
@@ -10,6 +11,8 @@ import { AccountsService } from './accounts/service';
 import { isTruthy, loadConfig, messagesOffReason, terminalOffReason, worldSocketUrl } from './config';
 import { createApiHandler, sendJson } from './http/app';
 import { createFrinusRoutes } from './http/frinus';
+import { createPerfRoutes, detectPlatform, parsePerfSimulate, PerfMonitor, type PerfSessionRef } from './http/perf';
+import { UpdateApplier, type UpdatePlatform } from './updates/apply';
 import { createRequestGuard, isLoopbackHost } from './http/guard';
 import { createRemoteGate, isRemoteRequest, loadSecret, RemoteSessions, startRemoteListener, type RemoteListener } from './http/remote';
 import { Hub } from './http/sse';
@@ -90,6 +93,8 @@ const updates = new UpdateChecker({
   enabled: config.updateCheck,
   file: join(config.dataDir, 'updates.json'),
   onChange: () => late.office?.markDirty(),
+  // Só para teste: finge que esta versão é a mais nova (sem consultar o GitHub).
+  simulateLatest: process.env.FRINUS_CORTEX_UPDATE_SIMULATE_LATEST?.trim() || undefined,
 });
 updates.load();
 // Habblaud World (server/world/): a conta e o personagem neste computador. Ligado por padrão (server.habblaud.com, ou
@@ -344,6 +349,47 @@ const ticker = setInterval(() => {
   }
 }, 250);
 
+// Painel "Desempenho": as sessões ativas são os agentes principais do Claude Code (o id é "<conta>:<pid>"), onde o pid
+// é o processo cuja árvore (Claude Code + servidores MCP) o painel soma. Subagentes rodam dentro do principal e não
+// contam. O amostrador roda em segundo plano (unref: não segura o processo vivo).
+const perfMonitor = new PerfMonitor({
+  sessions: (): PerfSessionRef[] => {
+    const out: PerfSessionRef[] = [];
+    for (const a of office.list()) {
+      if (a.kind !== 'main' || (a.provider ?? 'claude') !== 'claude') continue;
+      const pid = Number(a.id.split(':')[1]);
+      if (!Number.isSafeInteger(pid) || pid <= 0) continue;
+      out.push({ pid, name: a.name, project: office.roomName(a.roomId), account: a.account });
+    }
+    return out;
+  },
+  simulate: parsePerfSimulate(process.env.FRINUS_CORTEX_PERF_SIMULATE),
+});
+perfMonitor.start();
+
+// "Atualizar Córtex": instala a versão nova e reinicia o serviço (fecha as sessões). dryRun por FRINUS_CORTEX_UPDATE_DRYRUN
+// (a instância de teste roda sempre com =1). Plataforma/systemd detectados de forma leve; o executor real só roda fora
+// do dryRun. O serviço vem de FRINUS_OFFICE_SERVICE (posto pelo instalador no Exec do systemd).
+const updatePlatform: UpdatePlatform = (() => {
+  let procVersion: string | undefined;
+  try {
+    procVersion = process.platform === 'linux' ? readFileSync('/proc/version', 'utf8') : undefined;
+  } catch {
+    procVersion = undefined;
+  }
+  return detectPlatform(process.platform, procVersion, process.env);
+})();
+const hasSystemd = (updatePlatform === 'linux' || updatePlatform === 'wsl') && !!process.env.XDG_RUNTIME_DIR && existsSync(join(process.env.XDG_RUNTIME_DIR, 'systemd'));
+const updateApplier = new UpdateApplier({
+  rootDir: config.rootDir,
+  service: process.env.FRINUS_OFFICE_SERVICE?.trim() || undefined,
+  platform: updatePlatform,
+  hasSystemd,
+  launchdLabel: process.env.FRINUS_CORTEX_LAUNCHD_LABEL?.trim() || undefined,
+  dryRun: isTruthy(process.env.FRINUS_CORTEX_UPDATE_DRYRUN),
+  updateCmd: process.env.FRINUS_CORTEX_UPDATE_CMD?.trim() || undefined,
+});
+
 const api = createApiHandler({
   renameRoom: (id, name) => {
     const path = office.roomPath(id);
@@ -391,6 +437,8 @@ const api = createApiHandler({
     rescan: () => accounts.rediscover(),
     installMod: (dir) => installModInAccount(dir),
   }),
+  perf: createPerfRoutes(perfMonitor),
+  updateApplier,
 });
 
 /**

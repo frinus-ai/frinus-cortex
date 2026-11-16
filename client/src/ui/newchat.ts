@@ -262,6 +262,8 @@ export class NewChatPanel implements UiComponent {
     const mode = this.modeSelect.value || DEFAULT_MODE;
     if (!account) return this.say(this.startMsg, tr('Escolha uma conta.'), true);
     if (!folder) return this.say(this.startMsg, tr('Informe a pasta (caminho absoluto, ex.: /home/voce/Frinus).'), true);
+    // Trava gentil de desempenho: no 🔴 pede confirmação; no 🟡 só avisa; no 🟢 segue direto. Nunca encerra nada.
+    if (this.ctx.confirmOpenSession && !(await this.ctx.confirmOpenSession())) return;
     this.busy = true;
     this.render();
     this.say(this.startMsg, tr('Abrindo…'), false);

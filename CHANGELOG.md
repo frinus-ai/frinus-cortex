@@ -13,6 +13,38 @@ do meio (0.**3**.0).
 > As versões abaixo com número `0.x` são do Frinus Córtex (distribuição ao cliente). As `1.x` acima são do
 > Habblaud, o motor de base, e ficam aqui como histórico do fork.
 
+## [0.2.5] - 2026-11-16
+
+### Adicionado
+
+- **Painel “Desempenho”: veja o quanto a máquina aguenta e o que cada trabalho está consumindo.** Uma pílula com um
+  semáforo (🟢 tranquilo · 🟡 enchendo · 🔴 cheio) fica sempre visível na barra do topo e abre uma janela com uma
+  frase simples (“Tudo tranquilo — cabem mais 3 trabalhos”), três medidores (Memória, Processador e Folga para abrir
+  trabalho) e a lista dos trabalhos abertos, cada um com o peso (leve / médio / pesado) e o mais pesado em destaque.
+  Os números crus (RAM, swap, pressão de memória, teto do Córtex) ficam em “Detalhes”.
+- **Aviso gentil ao abrir um trabalho novo quando a máquina está cheia.** No amarelo, um aviso que não atrapalha; no
+  vermelho, uma confirmação (“Abrir mesmo assim”) e um atalho para ir até o trabalho mais pesado e pausá-lo ou
+  fechá-lo. O Córtex nunca bloqueia nem encerra nada sozinho — a decisão é sempre sua.
+- **Atualizar o Córtex pela própria versão na barra do topo.** Quando há versão nova, o número da versão vira um
+  controle claro (“v0.2.6 · Atualizar”) que instala a versão nova reiniciando o serviço. Como reiniciar fecha os
+  trabalhos abertos, antes de executar aparece uma confirmação que LISTA os trabalhos que serão interrompidos
+  (nome · projeto · conta) e explica que poderão ser retomados depois. Dá para escolher “Atualizar quando esvaziar”
+  (espera os trabalhos terminarem). Durante a atualização a página mostra “Atualizando…” e volta sozinha quando o
+  Córtex reinicia. Sem versão nova, o número fica discreto e leva ao “Sobre”.
+- **Seção “Versão” no Sobre (Configurações).** Mostra a versão em uso, a última verificação, um botão “Verificar
+  agora” e o botão “Atualizar Córtex” (desabilitado, com “Você já está na versão mais recente”, quando for o caso).
+
+### Corrigido
+
+- **A versão do Córtex voltou a aparecer na barra do topo.** A pílula do semáforo de desempenho passou para o lado
+  direito da barra, ao lado de “Nova conversa”, e a versão ficou visível de novo à esquerda. A versão também aparece
+  no rodapé do painel Desempenho. Em tela estreita, a pílula fica só com a bolinha do semáforo.
+
+### Mudado
+
+- **Córtex vazio: ilustração de escritório removida.** O estado “O córtex está vazio” não mostra mais a ilustração
+  herdada do Habblaud; no lugar, um símbolo neutro do Frinus e o convite para iniciar uma conversa.
+
 ## [0.2.4] - 2026-11-15
 
 ### Corrigido
@@ -71,7 +103,6 @@ do meio (0.**3**.0).
 Primeira versão liberada para clientes: release pronta por sistema operacional (Linux x64/arm64, macOS arm64/x64)
 e instalador de um comando (`install.sh`, `Instalar-Frinus-Office.cmd`) que baixa a versão compilada, confere o
 SHA-256, cadastra a conta Frinus, liga a memória e instala o escritório, o início automático e o atalho.
-
 ## [1.0.3] - 2026-10-16
 
 ### Corrigido

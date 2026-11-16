@@ -107,6 +107,17 @@ export interface ApiDeps {
    * em nome de um acesso remoto. Devolve false para o que não é dela.
    */
   frinus?: (req: IncomingMessage, res: ServerResponse, url: URL) => boolean;
+  /**
+   * Painel "Desempenho" (GET /api/perf, server/http/perf.ts): RAM, processador, swap, PSI e o quanto cada sessão
+   * consome. Mesma exposição das rotas de leitura. Devolve false para o que não é dela.
+   */
+  perf?: (req: IncomingMessage, res: ServerResponse, url: URL, send: (res: ServerResponse, status: number, body: unknown) => void) => boolean;
+  /**
+   * "Atualizar Córtex" (POST /api/updates/apply): instala a versão nova e reinicia o serviço (isso fecha as sessões
+   * abertas). Só pelo próprio computador. `apply()` respeita o dry-run (FRINUS_CORTEX_UPDATE_DRYRUN): no dry-run só
+   * devolve o plano, sem instalar nem reiniciar. Ausente = recurso desligado.
+   */
+  updateApplier?: { apply(): { started: boolean; plan: unknown } };
 }
 
 /** GET /api/agents/:id/terminal (ids nunca contêm '/'). */
@@ -736,6 +747,22 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       else sendJson(res, 200, { version: deps.version, ...(deps.updates?.status() ?? { state: 'off', available: false }) });
       return true;
     }
+    if (path === '/api/updates/apply') {
+      // Instala a versão nova e reinicia o serviço: fecha as sessões abertas. Só pelo próprio computador (nunca remoto).
+      if (method !== 'POST') methodNotAllowed(res, 'POST');
+      else if (!deps.updateApplier) sendJson(res, 404, { error: tr('atualização pelo painel indisponível neste Córtex') });
+      else if (isRemote(req)) sendJson(res, 403, { error: tr('não liberado no acesso remoto (veja HABBLAUD_REMOTE_ALLOW)') });
+      else if (!trusted(req)) sendJson(res, 403, { error: denied(req, tr('atualizar o Córtex só pelo próprio computador (http://localhost)')) });
+      else {
+        req.resume();
+        try {
+          sendJson(res, 200, deps.updateApplier.apply());
+        } catch (err) {
+          fail(res, err);
+        }
+      }
+      return true;
+    }
     if (path === '/api/updates/check') {
       // "Verificar agora": consulta o GitHub (no máximo uma vez a cada 30 s) e devolve o status novo.
       if (method !== 'POST') methodNotAllowed(res, 'POST');
@@ -751,6 +778,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       }
       return true;
     }
+    if (deps.perf?.(req, res, url, sendJson)) return true;
     if (deps.timeline?.(req, res, url)) return true;
     if (deps.frinus?.(req, res, url)) return true;
     sendJson(res, 404, { error: tr('rota desconhecida') });

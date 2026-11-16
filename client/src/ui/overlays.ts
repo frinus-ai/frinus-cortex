@@ -78,21 +78,20 @@ export class EmptyState implements UiComponent {
   private newChatBtn: HTMLButtonElement;
 
   constructor(private ctx: UiContext) {
-    const art = h('div', { class: 'ui-empty__art', attrs: { 'aria-hidden': 'true' } });
-    const img = h('img', { attrs: { src: '/assets/illustrations/empty-office.png', alt: '', draggable: 'false' } });
-    img.addEventListener('error', () => {
-      img.remove();
-      art.classList.add('is-css');
-      // Ilustração em CSS: mesa vazia, monitor apagado, planta e luminária.
-      art.append(
-        h('span', { class: 'ui-empty__lamp' }),
-        h('span', { class: 'ui-empty__monitor' }),
-        h('span', { class: 'ui-empty__desk' }),
-        h('span', { class: 'ui-empty__chair' }),
-        h('span', { class: 'ui-empty__plant' }),
-      );
-    });
-    art.append(img);
+    // Frinus Córtex: estado vazio limpo, sem a ilustração de escritório do Habblaud. Só um glifo neutro (um "córtex"
+    // de pontos ligados, na cor de destaque do Frinus).
+    const art = h('div', { class: 'ui-empty__art ui-empty__art--glyph', attrs: { 'aria-hidden': 'true' } });
+    art.innerHTML =
+      '<svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+      '<path d="M20 14 L44 22 L50 42 L30 52 L14 36 Z" opacity="0.5"/>' +
+      '<circle cx="20" cy="14" r="3.2" fill="currentColor" stroke="none"/>' +
+      '<circle cx="44" cy="22" r="3.2" fill="currentColor" stroke="none"/>' +
+      '<circle cx="50" cy="42" r="3.2" fill="currentColor" stroke="none"/>' +
+      '<circle cx="30" cy="52" r="3.2" fill="currentColor" stroke="none"/>' +
+      '<circle cx="14" cy="36" r="3.2" fill="currentColor" stroke="none"/>' +
+      '<circle cx="32" cy="33" r="4" fill="currentColor" stroke="none"/>' +
+      '<path d="M32 33 L20 14 M32 33 L44 22 M32 33 L50 42 M32 33 L30 52 M32 33 L14 36" opacity="0.5"/>' +
+      '</svg>';
     this.hint = h('p', { class: 'ui-empty__text' });
     // Sem nada acontecendo, o convite é começar uma conversa (nada de demonstração).
     this.newChatBtn = h('button', {

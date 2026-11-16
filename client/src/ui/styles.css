@@ -11774,3 +11774,407 @@ select option:checked {
   background-color: #6c3fc4;
   color: #fff;
 }
+
+/* ===================================================================================================================
+   Painel "Desempenho" (ui/perf.ts): pílula do semáforo na barra do topo + janela com medidores e lista de sessões.
+   Cores do semáforo pelos tokens --lv-ok / --lv-warn / --lv-crit.
+   =================================================================================================================== */
+.ui-perfpill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--ui-line-strong);
+  background: var(--ui-bg-soft);
+  color: var(--ui-text);
+  font: 500 11px/1 var(--font-ui);
+  cursor: pointer;
+}
+.ui-perfpill:hover {
+  background: var(--ui-bg-hover);
+}
+.ui-perfpill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lv-ok);
+  flex: none;
+}
+.ui-perfpill.is-green .ui-perfpill__dot { background: var(--lv-ok); }
+.ui-perfpill.is-yellow .ui-perfpill__dot { background: var(--lv-warn); }
+.ui-perfpill.is-red .ui-perfpill__dot { background: var(--lv-crit); }
+.ui-perfpill.is-off .ui-perfpill__dot { background: var(--ui-faint); }
+.ui-perfpill.is-red {
+  border-color: color-mix(in srgb, var(--lv-crit) 55%, transparent);
+  color: color-mix(in srgb, var(--lv-crit) 85%, var(--ui-text));
+}
+.ui-perfpill.is-yellow {
+  border-color: color-mix(in srgb, var(--lv-warn) 45%, transparent);
+}
+
+/* Janela */
+.ui-perf {
+  width: min(560px, calc(100vw - 32px));
+}
+.ui-perf__body {
+  padding: 14px 18px 18px;
+  overflow-y: auto;
+  max-height: calc(min(86vh, 860px) - 54px);
+}
+.ui-perf__summaryline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ui-perf__bigdot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--lv-ok);
+}
+.ui-perf__bigdot.is-green { background: var(--lv-ok); }
+.ui-perf__bigdot.is-yellow { background: var(--lv-warn); }
+.ui-perf__bigdot.is-red { background: var(--lv-crit); }
+.ui-perf__summary {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.ui-perf__status {
+  margin: 0 0 12px;
+  color: var(--ui-muted);
+  font-style: italic;
+}
+
+/* Banner vermelho */
+.ui-perf__banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--lv-crit) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lv-crit) 40%, transparent);
+}
+.ui-perf__banner-btn {
+  flex: none;
+  padding: 5px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--lv-crit) 55%, transparent);
+  background: color-mix(in srgb, var(--lv-crit) 22%, transparent);
+  color: var(--ui-text);
+  font: 500 12px/1 var(--font-ui);
+  cursor: pointer;
+}
+.ui-perf__banner-btn:hover {
+  background: color-mix(in srgb, var(--lv-crit) 34%, transparent);
+}
+
+/* Medidores */
+.ui-perf__meters {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.ui-perf__meter-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 5px;
+}
+.ui-perf__meter-label {
+  color: var(--ui-muted);
+  font-size: 12px;
+}
+.ui-perf__meter-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ui-perf__bar {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ui-bg-hover);
+  overflow: hidden;
+}
+.ui-perf__bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--lv-ok);
+  transition: width 0.4s var(--ease);
+}
+.ui-perf__bar.is-ok .ui-perf__bar-fill { background: var(--lv-ok); }
+.ui-perf__bar.is-warn .ui-perf__bar-fill { background: var(--lv-warn); }
+.ui-perf__bar.is-bad .ui-perf__bar-fill { background: var(--lv-crit); }
+
+/* Lista de sessões */
+.ui-perf__subtitle {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ui-faint);
+}
+.ui-perf__sessions {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.ui-perf__session {
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  background: var(--ui-bg-soft);
+  border: 1px solid var(--ui-line);
+}
+.ui-perf__session.is-heaviest {
+  border-color: var(--ui-line-strong);
+  background: var(--ui-bg-hover);
+}
+.ui-perf__session-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ui-perf__session-name {
+  font-weight: 600;
+}
+.ui-perf__weight {
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--ui-bg-hover);
+  color: var(--ui-muted);
+}
+.ui-perf__weight.is-ok { color: var(--lv-ok); background: color-mix(in srgb, var(--lv-ok) 14%, transparent); }
+.ui-perf__weight.is-warn { color: var(--lv-warn); background: color-mix(in srgb, var(--lv-warn) 14%, transparent); }
+.ui-perf__weight.is-bad { color: var(--lv-crit); background: color-mix(in srgb, var(--lv-crit) 16%, transparent); }
+.ui-perf__session-sub {
+  color: var(--ui-faint);
+  font-size: 11px;
+  margin: 2px 0 6px;
+}
+.ui-perf__session-barrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ui-perf__session-barrow .ui-perf__bar {
+  flex: 1;
+}
+.ui-perf__session-mem {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+.ui-perf__empty {
+  color: var(--ui-faint);
+  font-style: italic;
+  padding: 6px 2px;
+}
+
+/* Detalhes crus */
+.ui-perf__details > summary {
+  cursor: pointer;
+  color: var(--ui-muted);
+  font-size: 12px;
+  padding: 4px 0;
+}
+.ui-perf__detail-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+.ui-perf__detail-grid dt {
+  color: var(--ui-faint);
+}
+.ui-perf__detail-grid dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Confirmação de abrir no vermelho */
+.ui-perf-confirm {
+  width: min(420px, calc(100vw - 32px));
+}
+.ui-perf-confirm__body {
+  padding: 14px 18px 18px;
+}
+.ui-perf__confirm-msg {
+  margin: 0 0 8px;
+}
+.ui-perf__confirm-hint {
+  margin: 0 0 14px;
+  color: var(--ui-muted);
+  font-size: 12px;
+}
+.ui-perf-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Painel Desempenho: rodapé com versão + "Atualizar Córtex" */
+.ui-perf__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ui-line);
+}
+.ui-perf__foot-ver {
+  color: var(--ui-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.ui-perf__foot-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ui-perf__foot-note {
+  color: var(--ui-faint);
+  font-size: 11px;
+}
+.ui-perf__killlist {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--lv-crit) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lv-crit) 30%, transparent);
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.ui-perf__killlist span {
+  color: var(--ui-muted);
+}
+.ui-perf__drysteps {
+  margin: 0 0 14px;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ui-text);
+}
+.ui-perf__drysteps + .ui-perf__confirm-hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  word-break: break-all;
+  background: var(--ui-bg-soft);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+}
+
+/* Aviso "Atualizando…" em tela cheia */
+.ui-perf-updating {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 7, 12, 0.72);
+  backdrop-filter: blur(2px);
+}
+.ui-perf-updating__card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  border-radius: 14px;
+  background: var(--ui-bg-solid);
+  border: 1px solid var(--ui-line-strong);
+  color: var(--ui-text);
+  max-width: min(420px, calc(100vw - 32px));
+}
+.ui-perf-updating__spin {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  border: 3px solid var(--ui-line-strong);
+  border-top-color: var(--ui-accent);
+  animation: ui-perf-spin 0.8s linear infinite;
+}
+@keyframes ui-perf-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-perf-updating__spin { animation: none; }
+}
+
+/* Estado vazio: glifo neutro do Frinus (sem a ilustração do Habblaud) */
+.ui-empty__art--glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ui-accent);
+  opacity: 0.75;
+  margin-bottom: 4px;
+}
+.ui-empty__art--glyph svg {
+  width: 72px;
+  height: 72px;
+}
+
+/* Pílula de Desempenho em tela estreita: só o semáforo (sem o texto), ainda visível */
+@media (max-width: 1040px) {
+  .ui-perfpill__text { display: none; }
+  .ui-perfpill { padding: 3px 6px; }
+}
+
+/* Versão na barra do topo como controle de atualização: o texto "v… · Atualizar" fica visível (sobrepõe o colapso
+   para só-ícone do antigo selo "Nova versão"), menos em tela de celular (onde a versão já some). */
+.ui-version.is-new .ui-version__text {
+  display: inline;
+}
+@media (max-width: 1040px) {
+  .ui-version.is-new .ui-version__text { display: none; }
+}
+
+/* Sobre › Versão: estado da verificação + "Verificar agora" e "Atualizar Córtex" */
+.ui-about__version-sec {
+  margin: 10px 0 12px;
+}
+.ui-about__subhead {
+  margin: 0 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ui-faint);
+}
+.ui-about__verstatus {
+  margin: 0 0 8px;
+}
+.ui-about__ver-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ui-about__updnote {
+  color: var(--ui-faint);
+  font-size: 12px;
+}

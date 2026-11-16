@@ -742,3 +742,95 @@ export interface InboxMessage {
   /** O texto como foi digitado: o plugin o manda à sessão como se você o tivesse digitado. */
   text: string;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Painel "Desempenho" (GET /api/perf): quanto a máquina aguenta e quanto cada sessão está consumindo. Números crus para
+// os "detalhes"; o resto é linguagem leiga. Ver server/http/perf.ts (servidor) e client/src/ui/perf.ts (interface).
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Semáforo de folga da máquina: 🟢 tranquilo · 🟡 enchendo · 🔴 sobrecarregada. */
+export type PerfLevel = 'green' | 'yellow' | 'red';
+
+/** Onde o Córtex está rodando. No WSL a RAM visível é a da máquina virtual, não a do Windows todo. */
+export type PerfPlatform = 'linux' | 'wsl' | 'darwin' | 'other';
+
+/** Peso leigo de uma sessão pela memória que ela ocupa: leve (<600 MB) · médio (<1200 MB) · pesado. */
+export type PerfWeight = 'light' | 'medium' | 'heavy';
+
+/** Uma sessão/trabalho ativo e o quanto a árvore de processos dele ocupa. */
+export interface PerfSessionInfo {
+  /** PID do processo principal da sessão (Claude Code). */
+  pid: number;
+  /** Nome do agente/sessão (ex.: "Marina"). */
+  name: string;
+  /** Projeto/pasta da sessão (nome da sala). */
+  project: string;
+  /** Conta de origem (apelido). */
+  account: string;
+  /** Memória da árvore de processos, em MB (RSS somado). */
+  memMb: number;
+  /** Uso de processador da árvore, em % (pode passar de 100 com vários núcleos). undefined = ainda sem medição. */
+  cpuPct?: number;
+  /** Peso leigo pela memória. */
+  weight: PerfWeight;
+  /** Quantos processos há na árvore (principal + filhos, ex.: servidores MCP). */
+  procs: number;
+}
+
+/** Números do sistema inteiro. Campos opcionais só existem no Linux/WSL. */
+export interface PerfSystem {
+  ramTotalMb: number;
+  ramAvailableMb: number;
+  ramUsedMb: number;
+  /** % da RAM em uso (0–100). */
+  ramUsedPct: number;
+  swapTotalMb: number;
+  swapUsedMb: number;
+  /** % de processador em uso (0–100), média de todos os núcleos. */
+  cpuPct: number;
+  cpuCount: number;
+  /** PSI de memória — "some avg10" de /proc/pressure/memory (Linux). Quanto tudo trava esperando memória. */
+  psiMemAvg10?: number;
+  /** PSI de processador — "some avg10" de /proc/pressure/cpu (Linux). */
+  psiCpuAvg10?: number;
+}
+
+/** Teto do próprio Córtex quando ele roda limitado por cgroup v2; senão, só o orçamento calculado. */
+export interface PerfCortexCap {
+  /** Memória que o cgroup do Córtex usa agora, em MB (cgroup v2). */
+  currentMb?: number;
+  /** Limite "suave" (memory.high) em MB; null = sem limite ("max"). */
+  highMb?: number | null;
+  /** Limite "duro" (memory.max) em MB; null = sem limite ("max"). */
+  maxMb?: number | null;
+}
+
+/** Quantos trabalhos cabem na máquina com folga. */
+export interface PerfBudget {
+  /** Reserva para o sistema operacional (max(2 GB, 25% da RAM)), em MB. */
+  reserveMb: number;
+  /** Orçamento para sessões (RAM − reserva), em MB. */
+  budgetMb: number;
+  /** Quantas sessões cabem no total. */
+  sessionsMax: number;
+  /** Quantas sessões estão ativas agora. */
+  sessionsActive: number;
+  /** Folga: sessões_max − sessões_ativas (pode ser negativa quando passou do orçamento). */
+  freeSessions: number;
+}
+
+/** Resposta de GET /api/perf. */
+export interface PerfSnapshot {
+  platform: PerfPlatform;
+  level: PerfLevel;
+  /** Frase leiga pronta, no idioma do servidor (ex.: "Tudo tranquilo — cabem mais 3 trabalhos"). */
+  summary: string;
+  system: PerfSystem;
+  cortex: PerfCortexCap;
+  budget: PerfBudget;
+  sessions: PerfSessionInfo[];
+  /** PID da sessão mais pesada (maior memória), quando há alguma. */
+  heaviestPid?: number;
+  /** Quando os números do sistema foram medidos (epoch ms). */
+  sampledAt: number;
+}
