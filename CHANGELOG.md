@@ -13,6 +13,15 @@ do meio (0.**3**.0).
 > As versões abaixo com número `0.x` são do Frinus Córtex (distribuição ao cliente). As `1.x` acima são do
 > Habblaud, o motor de base, e ficam aqui como histórico do fork.
 
+## [0.2.6] - 2026-11-17
+
+### Corrigido
+
+- **Subagentes retomados voltam a aparecer no escritório.** Quando um subagente em segundo plano parava e depois era
+  retomado pela sessão principal (por exemplo, para continuar uma frente de trabalho), ele seguia trabalhando no
+  terminal, mas sumia da cena — e, depois de reiniciar o Córtex, nem voltava. Agora o Córtex percebe que ele voltou a
+  trabalhar e o mostra de novo, ao vivo e depois de reiniciar.
+
 ## [0.2.5] - 2026-11-16
 
 ### Adicionado
