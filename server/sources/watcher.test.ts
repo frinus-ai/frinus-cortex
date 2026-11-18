@@ -255,6 +255,59 @@ describe('ClaudeWatcher', () => {
     expect(c.agent('sess-a:b1')!.status).toBe('done');
   });
 
+  it('subagente em segundo plano retomado depois da notificação (SendMessage) volta ao escritório — ao vivo e no reinício', () => {
+    bootWithSession();
+    appendLines(c.transcript('sess-a'), [
+      L.assistant([L.tool('toolu_r', 'Agent', { description: 'Deploy na VPS', subagent_type: 'frinus-specialist', run_in_background: true })]),
+      L.result('toolu_r', 'lançado', { toolUseResult: { isAsync: true, status: 'async_launched', agentId: 'r1' } }),
+    ]);
+    const sub = c.subFile('sess-a', 'r1', { agentType: 'frinus-specialist', description: 'Deploy na VPS', toolUseId: 'toolu_r', requestShape: 'background' }, [
+      L.prompt('Faça o deploy', { agentId: 'r1' }),
+      L.assistant([L.tool('w1', 'Bash', { command: 'ls' })], { agentId: 'r1' }),
+    ]);
+    c.poll();
+    const doneAt = Date.now();
+    appendLines(c.transcript('sess-a'), [L.notification('toolu_r', 'completed', 'Parou para perguntar', { at: doneAt })]);
+    c.poll();
+    expect(c.agent('sess-a:r1')!.status).toBe('done');
+    // Sai do escritório (período de graça) e é retomado por SendMessage: volta a gravar no mesmo arquivo.
+    c.advance(10 * 60_000);
+    c.poll();
+    c.poll();
+    expect(c.agent('sess-a:r1')).toBeUndefined();
+    appendLines(sub, [L.assistant([L.tool('w2', 'Bash', { command: 'dotnet build' })], { agentId: 'r1', at: doneAt + 60_000 })]);
+    const later = (doneAt + 60_000) / 1000;
+    utimesSync(sub, later, later);
+    c.poll();
+    expect(c.agent('sess-a:r1')?.status).toBe('working');
+
+  });
+
+  it('boot: subagente com notificação antiga mas escrito depois dela (retomado) entra; o não retomado não', () => {
+    const doneAt = Date.now() - 5 * 60_000;
+    writeLines(c.transcript('sess-r'), [
+      L.prompt('oi', { at: doneAt - 60_000 }),
+      L.assistant([L.tool('toolu_r', 'Agent', { description: 'Deploy', subagent_type: 'frinus-specialist', run_in_background: true })], { at: doneAt - 50_000 }),
+      L.result('toolu_r', 'lançado', { at: doneAt - 50_000, toolUseResult: { isAsync: true, status: 'async_launched', agentId: 'r1' } }),
+      L.assistant([L.tool('toolu_q', 'Agent', { description: 'Testes', subagent_type: 'frinus-specialist', run_in_background: true })], { at: doneAt - 50_000 }),
+      L.result('toolu_q', 'lançado', { at: doneAt - 50_000, toolUseResult: { isAsync: true, status: 'async_launched', agentId: 'q1' } }),
+      L.notification('toolu_r', 'completed', 'Parou', { at: doneAt }),
+      L.notification('toolu_q', 'completed', 'Pronto', { at: doneAt }),
+    ]);
+    c.subFile('sess-r', 'r1', { agentType: 'frinus-specialist', toolUseId: 'toolu_r', requestShape: 'background' }, [
+      L.assistant([L.tool('w2', 'Bash', { command: 'dotnet build' })], { agentId: 'r1' }),
+    ]);
+    const q = c.subFile('sess-r', 'q1', { agentType: 'frinus-specialist', toolUseId: 'toolu_q', requestShape: 'background' }, [
+      L.assistant([L.tool('w3', 'Bash', { command: 'npm test' })], { agentId: 'q1', at: doneAt - 1_000 }),
+    ]);
+    const before = (doneAt - 1_000) / 1000;
+    utimesSync(q, before, before);
+    c.openSession(300, 'sess-r');
+    c.watcher.boot();
+    expect(c.agent('sess-r:r1')?.status).toBe('working');
+    expect(c.agent('sess-r:q1')).toBeUndefined();
+  });
+
   it('fork em segundo plano: entra e trabalha (a cópia da chamada do pai não o conclui); a notificação conclui', () => {
     const mainId = bootWithSession();
     appendLines(c.transcript('sess-a'), [
