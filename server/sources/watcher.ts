@@ -119,6 +119,12 @@ interface SessionTracker {
   runToTool: Map<string, string>;
   finishedTools: Set<string>;
   finishedAgents: Set<string>;
+  /**
+   * Quando cada subagente (agentId) foi dado como concluído. Um subagente em segundo plano pode ser
+   * retomado depois da notificação (SendMessage) e voltar a gravar no MESMO arquivo: escrita bem depois
+   * desse instante = retomado, não concluído.
+   */
+  finishedAt: Map<string, number>;
   finishedRuns: Set<string>;
   journals: Map<string, { size: number; agents: Map<string, JournalAgent> }>;
   /** Shells (Bash/Monitor) que o principal e os subagentes desta sessão estão esperando. */
@@ -137,6 +143,8 @@ interface SessionTracker {
 }
 
 const MAX_SET = 2_000;
+/** Escrita no arquivo do subagente mais de 5 s depois da conclusão = foi retomado. */
+const RESUME_MARGIN_MS = 5_000;
 /** Texto da atividade "Recebeu resultado em segundo plano" (entrega de uma <task-notification>). */
 const BACKGROUND_RESULT_TEXT = SPECIAL.backgroundResult().text;
 /** Atividades recuperadas do começo do transcript do principal para a linha do tempo longa. */
@@ -412,6 +420,7 @@ export class ClaudeWatcher implements AgentSource {
       runToTool: new Map(),
       finishedTools: new Set(),
       finishedAgents: new Set(),
+      finishedAt: new Map(),
       finishedRuns: new Set(),
       journals: new Map(),
       shells: new ShellTracker(),
@@ -590,18 +599,18 @@ export class ClaudeWatcher implements AgentSource {
         if (sig.runId) t.runToTool.set(sig.runId, sig.toolUseId);
         return;
       case 'finished':
-        this.finishTool(t, sig.toolUseId);
-        if (sig.agentId) addBounded(t.finishedAgents, sig.agentId);
+        this.finishTool(t, sig.toolUseId, at);
+        if (sig.agentId) this.finishAgent(t, sig.agentId, at);
         if (sig.runId) addBounded(t.finishedRuns, sig.runId);
         return;
       case 'notification': {
         const tool = sig.toolUseId ?? (sig.taskId ? t.taskToTool.get(sig.taskId) : undefined);
-        if (tool) this.finishTool(t, tool);
+        if (tool) this.finishTool(t, tool, at);
         return;
       }
       case 'stopped': {
         const tool = t.taskToTool.get(sig.taskId);
-        if (tool) this.finishTool(t, tool);
+        if (tool) this.finishTool(t, tool, at);
         return;
       }
       case 'github':
@@ -613,16 +622,35 @@ export class ClaudeWatcher implements AgentSource {
     }
   }
 
-  private finishTool(t: SessionTracker, toolUseId: string): void {
+  private finishTool(t: SessionTracker, toolUseId: string, at: number): void {
     addBounded(t.finishedTools, toolUseId);
     const l = t.launched.get(toolUseId);
-    if (l?.agentId) addBounded(t.finishedAgents, l.agentId);
+    if (l?.agentId) this.finishAgent(t, l.agentId, at);
     if (l?.runId) addBounded(t.finishedRuns, l.runId);
+  }
+
+  private finishAgent(t: SessionTracker, agentId: string, at: number): void {
+    addBounded(t.finishedAgents, agentId);
+    t.finishedAt.set(agentId, at);
+    if (t.finishedAt.size > MAX_SET) t.finishedAt.delete(t.finishedAt.keys().next().value as string);
+  }
+
+  /**
+   * Subagente dado como concluído que voltou a gravar bem depois disso: foi retomado (SendMessage
+   * para o mesmo agentId). Desfaz a conclusão para ele voltar ao escritório — ao vivo e no boot.
+   */
+  private resumeIfWritten(t: SessionTracker, file: SubagentFile, meta: SubagentMeta | undefined, lastWriteAt: number): void {
+    const at = t.finishedAt.get(file.agentId);
+    if (at === undefined || lastWriteAt <= at + RESUME_MARGIN_MS) return;
+    t.finishedAt.delete(file.agentId);
+    t.finishedAgents.delete(file.agentId);
+    if (meta?.toolUseId) t.finishedTools.delete(meta.toolUseId);
   }
 
   // ---------------------------------------------------------------- subagentes
 
-  private isFinished(t: SessionTracker, file: SubagentFile, meta: SubagentMeta | undefined): boolean {
+  private isFinished(t: SessionTracker, file: SubagentFile, meta: SubagentMeta | undefined, lastWriteAt?: number): boolean {
+    if (lastWriteAt !== undefined && !file.runId) this.resumeIfWritten(t, file, meta, lastWriteAt);
     if (meta?.toolUseId && t.finishedTools.has(meta.toolUseId)) return true;
     if (t.finishedAgents.has(file.agentId)) return true;
     if (file.runId) {
@@ -747,7 +775,7 @@ export class ClaudeWatcher implements AgentSource {
       if (!r.more) break;
     }
     const finished =
-      this.isFinished(t, file, meta) ||
+      this.isFinished(t, file, meta, tail.mtimeMs) ||
       (mode !== 'new' && concludedByIdle({ now, lastWriteAt: tail.mtimeMs, ended: state.ended, pendingTool: state.pendingTools.size > 0 }));
     if (finished) {
       t.known.set(file.path, tail.size);
@@ -820,7 +848,7 @@ export class ClaudeWatcher implements AgentSource {
         if (!r.more) break;
       }
       if (office.isSubDone(sub.id)) {
-        if (fresh > 0 && !this.isFinished(t, sub.file, sub.meta)) {
+        if (fresh > 0 && !this.isFinished(t, sub.file, sub.meta, sub.tail.mtimeMs)) {
           const since = office.get(sub.id)?.statusSince ?? now;
           if (now - since > 3_000) office.reactivateSub(sub.id);
         }
