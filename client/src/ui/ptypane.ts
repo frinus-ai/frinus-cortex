@@ -26,6 +26,8 @@ export class PtyPane {
   /** Camada de aviso de arrastar/colar (solte para anexar; erro de recent://). */
   private dropHint: HTMLElement;
   private dropTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Texto que o app mandou copiar (OSC 52) e o navegador recusou; vai no próximo Ctrl+Shift+C. */
+  private osc52Pending: string | null = null;
 
   constructor(private onExit: () => void) {
     this.el = document.createElement('div');
@@ -36,6 +38,8 @@ export class PtyPane {
       fontSize: 13,
       scrollback: 5000,
       theme: { background: '#0a0c12', foreground: '#d5dceb', cursor: '#ffb547', selectionBackground: '#3a4a6b' },
+      // Com o mouse capturado pelo app, Shift (Linux/Windows) ou Option (macOS) + arrastar força a seleção do xterm.
+      macOptionClickForcesSelection: true,
     });
     this.fit = new FitAddon();
     this.term.loadAddon(this.fit);
@@ -45,6 +49,22 @@ export class PtyPane {
     // Ctrl+Shift+C (ou Cmd+C) copia a seleção; Ctrl+C copia se houver seleção, senão segue como ^C;
     // Ctrl+Shift+V cola pelo caminho nativo; botão direito com seleção copia.
     this.term.attachCustomKeyEventHandler((e) => this.onKey(e));
+    // Claude Code em tela cheia ("tui": "fullscreen") captura o mouse, faz a seleção ele mesmo e copia pela
+    // sequência OSC 52. O xterm ignora essa sequência por padrão: sem este handler, nada chega à área de transferência.
+    this.term.parser.registerOscHandler(52, (data) => {
+      void this.onOsc52(data);
+      return true;
+    });
+    // Com o mouse capturado (Claude Code em tela cheia pede todo movimento), o xterm trata cada movimento informado
+    // como digitação e apaga a seleção: ao soltar o botão e mexer o mouse, o texto selecionado sumia antes do
+    // Ctrl+C. Enquanto houver seleção, o movimento sem botão não chega ao xterm (fase de captura, antes dele).
+    this.el.addEventListener(
+      'mousemove',
+      (e) => {
+        if (!e.buttons && this.term.hasSelection()) e.stopPropagation();
+      },
+      true,
+    );
     this.el.addEventListener('contextmenu', (e) => {
       if (!this.term.hasSelection()) return;
       e.preventDefault();
@@ -73,7 +93,14 @@ export class PtyPane {
     const mod = e.ctrlKey || e.metaKey;
     if (!mod || e.altKey) return true;
     if (key === 'c' && (e.shiftKey || e.metaKey || this.term.hasSelection())) {
-      if (!this.term.hasSelection()) return false; // Ctrl+Shift+C sem seleção: não manda nada ao Claude
+      if (!this.term.hasSelection()) {
+        // Ctrl+Shift+C sem seleção: copia o que o app pediu via OSC 52 e o navegador barrou; nunca manda nada ao Claude.
+        if (this.osc52Pending !== null) {
+          e.preventDefault();
+          void this.copyPendingOsc52();
+        }
+        return false;
+      }
       e.preventDefault();
       void this.copySelection();
       return false;
@@ -81,6 +108,37 @@ export class PtyPane {
     // Ctrl+Shift+V / Cmd+V: deixa o navegador disparar o "paste" nativo (o xterm e o onPaste cuidam dele).
     if (key === 'v' && (e.shiftKey || e.metaKey)) return false;
     return true;
+  }
+
+  /** OSC 52 = "<alvos>;<base64>". "?" é consulta de leitura da área de transferência: nunca respondemos (vazaria dados). */
+  private async onOsc52(data: string): Promise<void> {
+    const sep = data.indexOf(';');
+    const b64 = sep >= 0 ? data.slice(sep + 1) : data;
+    if (!b64 || b64 === '?') return;
+    let text: string;
+    try {
+      text = new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
+    } catch {
+      return;
+    }
+    if (!text) return;
+    if (await copyText(text)) {
+      this.osc52Pending = null;
+      this.showDrop(tr('Copiado'), false, 1_200, true);
+      return;
+    }
+    // Sem gesto do usuário o navegador pode recusar a escrita: guarda e copia no próximo Ctrl+Shift+C.
+    this.osc52Pending = text;
+    this.showDrop(tr('Aperte Ctrl+Shift+C para copiar'), false, 4_000, true);
+  }
+
+  private async copyPendingOsc52(): Promise<void> {
+    const text = this.osc52Pending;
+    if (text === null) return;
+    const ok = await copyText(text);
+    if (ok) this.osc52Pending = null;
+    this.term.focus();
+    this.showDrop(ok ? tr('Copiado') : tr('Não foi possível copiar'), !ok, ok ? 1_200 : 4_000, true);
   }
 
   private async copySelection(): Promise<void> {

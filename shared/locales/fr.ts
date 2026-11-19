@@ -213,6 +213,7 @@ export const FR: Readonly<Record<string, string>> = {
   // client/src/ui/drawer.ts
   "Copiado!": "Copié !",
   "Não foi possível copiar": "Copie impossible",
+  "Aperte Ctrl+Shift+C para copiar": "Appuyez sur Ctrl+Shift+C pour copier",
   "concluída": "terminée",
   "em andamento": "en cours",
   "Comando": "Commande",
