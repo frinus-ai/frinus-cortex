@@ -13,6 +13,15 @@ do meio (0.**3**.0).
 > As versões abaixo com número `0.x` são do Frinus Córtex (distribuição ao cliente). As `1.x` acima são do
 > Habblaud, o motor de base, e ficam aqui como histórico do fork.
 
+## [0.2.7] - 2026-11-19
+
+### Corrigido
+
+- **Copiar texto do terminal voltou a funcionar com o Claude Code em tela cheia.** Ao selecionar com Shift e soltar o
+  botão do mouse, a seleção sumia no primeiro movimento e o Ctrl+C não copiava nada. Agora a seleção fica até você
+  copiar (Ctrl+C, Ctrl+Shift+C ou botão direito). A cópia feita pelo próprio Claude Code também passa a chegar à área
+  de transferência.
+
 ## [0.2.6] - 2026-11-17
 
 ### Corrigido
