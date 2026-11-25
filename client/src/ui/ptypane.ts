@@ -5,6 +5,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import { postPty } from './ptyapi';
+import { PtyInput } from './ptyinput';
 import { formatPathForInsert, hasAttachment, resolveAttachment } from './attach';
 import { copyText } from './dom';
 import { tr } from '../../../shared/i18n';
@@ -18,9 +19,8 @@ export class PtyPane {
   private es: EventSource | null = null;
   private id: string | null = null;
   private exited = false;
-  /** Entrada ainda não enviada e a fila de envio (mantém a ordem das teclas). */
-  private pending = '';
-  private sending: Promise<void> = Promise.resolve();
+  /** Canal de entrada: WebSocket de baixa latência (uma mensagem por tecla), com POST /input de reserva. */
+  private readonly input = new PtyInput();
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private ro: ResizeObserver;
   /** Camada de aviso de arrastar/colar (solte para anexar; erro de recent://). */
@@ -221,6 +221,7 @@ export class PtyPane {
     this.id = id;
     this.exited = false;
     this.term.reset();
+    this.input.attach(id);
     const es = new EventSource(`/api/pty/${encodeURIComponent(id)}/stream`);
     this.es = es;
     es.addEventListener('reset', (e) => {
@@ -239,6 +240,7 @@ export class PtyPane {
       }
       this.term.write(`\r\n\x1b[2m[${code ? tr('Claude Code encerrado (código {0})', [code]) : tr('Claude Code encerrado')}]\x1b[0m\r\n`);
       es.close();
+      this.input.close();
       this.onExit();
     });
   }
@@ -247,6 +249,7 @@ export class PtyPane {
     this.es?.close();
     this.es = null;
     this.id = null;
+    this.input.close();
   }
 
   focus(): void {
@@ -267,14 +270,7 @@ export class PtyPane {
 
   private send(data: string): void {
     if (!this.id || this.exited) return;
-    this.pending += data;
-    const id = this.id;
-    this.sending = this.sending.then(async () => {
-      if (!this.pending) return;
-      const chunk = this.pending;
-      this.pending = '';
-      await postPty(`/api/pty/${encodeURIComponent(id)}/input`, { data: chunk }).catch(() => undefined);
-    });
+    this.input.send(data);
   }
 
   private scheduleResize(cols: number, rows: number): void {

@@ -27,6 +27,7 @@ import { NameStore } from './model/names';
 import { Office } from './model/office';
 import { RoomAliases } from './model/room-aliases';
 import { createPtyRoutes } from './http/pty';
+import { createPtyWsUpgrade } from './http/pty-ws';
 import { claudeBinFrom, isExecutableFile, loadPty, parsePermissionMode, PtyManager, type ScreenFactory, type SpawnPty } from './pty/manager';
 import { loadHeadlessScreen } from './pty/screen';
 import { openMainAgent, SessionHistory } from './sources/history';
@@ -492,6 +493,12 @@ if (config.dev) {
   fallback = (req, res, url) => serveStatic(req, res, url.pathname);
 }
 
+// Canal de ENTRADA de baixa latência do terminal (WebSocket): uma mensagem por tecla, sem juntar como a fila de
+// POST /input fazia. Upgrade no http.Server principal (só local: o terminal já recusa conexões de fora, então a porta
+// remota nunca o serve). Convive com o WebSocket do HMR do Vite no modo dev: cada listener só trata o seu caminho.
+const ptyWs = ptys ? createPtyWsUpgrade(ptys) : undefined;
+if (ptyWs) server.on('upgrade', ptyWs.upgrade);
+
 // Host/Origin/Content-Type: barra DNS rebinding e CSRF antes de qualquer rota (inclusive o Vite).
 const guard = createRequestGuard({ allowedHosts: config.allowedHosts });
 
@@ -639,6 +646,7 @@ function shutdown(signal: string): void {
   timeline?.stop();
   permissions?.stop();
   messages?.stop();
+  ptyWs?.closeAll();
   ptys?.stopAll();
   updates.stop();
   worldViewer?.stop();
