@@ -13,6 +13,20 @@ do meio (0.**3**.0).
 > As versões abaixo com número `0.x` são do Frinus Córtex (distribuição ao cliente). As `1.x` acima são do
 > Habblaud, o motor de base, e ficam aqui como histórico do fork.
 
+## [0.2.8] - 2026-11-25
+
+### Corrigido
+
+- **A memória do Frinus volta a funcionar na conta padrão.** Até a 0.2.7 o instalador gravava a conexão da memória
+  num arquivo que o Claude Code não lê quando é aberto pelo comando `frinus` ou pelo próprio Córtex — a memória
+  simplesmente não aparecia. O instalador agora grava no lugar certo e, ao iniciar, o Córtex conserta sozinho as
+  instalações antigas (basta atualizar).
+- **Terminal sem atraso ao digitar.** As teclas passam a ir ao Claude Code por uma conexão direta (WebSocket), uma a
+  uma e na hora, em vez de numa fila de requisições que atrasava o eco e juntava teclas em máquinas carregadas ou no
+  Windows (WSL). Se a conexão direta não abrir, o terminal volta sozinho ao caminho antigo.
+- **Modo de voz do Claude Code (segurar espaço) funciona no terminal do Córtex.** Era efeito da mesma fila: o espaço
+  segurado chegava em blocos e o Claude Code não reconhecia como tecla segurada.
+
 ## [0.2.7] - 2026-11-19
 
 ### Corrigido
