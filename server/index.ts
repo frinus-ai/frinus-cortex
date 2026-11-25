@@ -7,6 +7,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import http from 'node:http';
 import { join } from 'node:path';
 import { codexDirsRefused, discoverClaudeDirs, isDefaultDir } from './accounts/detect';
+import { healDefaultAccountMcp } from './accounts/heal';
 import { AccountsService } from './accounts/service';
 import { isTruthy, loadConfig, messagesOffReason, terminalOffReason, worldSocketUrl } from './config';
 import { createApiHandler, sendJson } from './http/app';
@@ -74,6 +75,13 @@ if (!config.inDocker) {
   const r = migrateLegacyStateDir(config.home);
   const msg = describeStateMigration(r);
   if (msg) (r.error ? log.warn : log.info)(msg);
+}
+// Conta padrão instalada até a v0.2.7: o MCP do Frinus ficou em ~/.claude/.claude.json, que o Claude não lê
+// sem CLAUDE_CONFIG_DIR (comando `frinus` e sessões do Córtex). Copia para ~/.claude.json.
+if (!config.inDocker) {
+  const healed = healDefaultAccountMcp(config.home);
+  if (healed.copied.length) log.info(tr('Memória do Frinus ligada na conta padrão (~/.claude.json): {0}.', [healed.copied.join(', ')]));
+  else if (healed.error) log.warn(tr('Não consegui conferir a memória do Frinus na conta padrão: {0}', [healed.error]));
 }
 const legacyEnv = legacyEnvWarning(Object.keys(process.env));
 if (legacyEnv) log.warn(legacyEnv);

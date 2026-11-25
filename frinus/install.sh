@@ -144,25 +144,33 @@ if [ -n "$ALIAS" ]; then
   ALIAS="$(printf '%s' "$ALIAS" | tr '[:upper:]' '[:lower:]' | sed -E 's/^\.?claude[-_.]?//; s/[^a-z0-9_-]//g')"
   [ -n "$ALIAS" ] || { echo "install: apelido inválido." >&2; exit 2; }
   CFG="$HOME/.claude-$ALIAS"
+  MCP_ENV=(env CLAUDE_CONFIG_DIR="$CFG")
 else
   # Conta padrão do Claude Code: o cliente não precisa escolher nada além de colar a chave.
   CFG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+  # Conta padrão: SEM CLAUDE_CONFIG_DIR. Com a variável, o Claude grava o MCP em ~/.claude/.claude.json, mas o
+  # comando `frinus` e as sessões do Córtex abrem a conta padrão sem ela e leem ~/.claude.json (bug até a 0.2.7).
+  if [ -n "${CLAUDE_CONFIG_DIR:-}" ] && [ "$(cd "$CLAUDE_CONFIG_DIR" 2>/dev/null && pwd -P)" != "$(cd "$HOME/.claude" 2>/dev/null && pwd -P)" ]; then
+    MCP_ENV=(env CLAUDE_CONFIG_DIR="$CFG")
+  else
+    MCP_ENV=(env -u CLAUDE_CONFIG_DIR)
+  fi
 fi
 echo "   conta -> $CFG"
 
 if [ "$DRY_RUN" = 1 ]; then
   if [ -n "$MCP_INSTALL" ]; then
-    echo "  + rodaria: CLAUDE_CONFIG_DIR=$CFG FRINUS_DEFER_LOGIN=1 bash $MCP_INSTALL"
+    echo "  + rodaria: ${MCP_ENV[*]} FRINUS_DEFER_LOGIN=1 bash $MCP_INSTALL"
   else
-    echo "  + rodaria: curl -fsSL $MCP_URL | CLAUDE_CONFIG_DIR=$CFG FRINUS_DEFER_LOGIN=1 bash"
+    echo "  + rodaria: curl -fsSL $MCP_URL | ${MCP_ENV[*]} FRINUS_DEFER_LOGIN=1 bash"
   fi
 else
   # O instalador do frinus-mcp pede a chave escondida (não aparece na tela/log) e respeita CLAUDE_CONFIG_DIR,
   # instalando a conta em ~/.claude-<apelido>. FRINUS_DEFER_LOGIN=1: o login do Claude fica para o 1º uso.
   if [ -n "$MCP_INSTALL" ]; then
-    CLAUDE_CONFIG_DIR="$CFG" FRINUS_DEFER_LOGIN=1 bash "$MCP_INSTALL"
+    "${MCP_ENV[@]}" FRINUS_DEFER_LOGIN=1 bash "$MCP_INSTALL"
   elif command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$MCP_URL" | CLAUDE_CONFIG_DIR="$CFG" FRINUS_DEFER_LOGIN=1 bash
+    curl -fsSL "$MCP_URL" | "${MCP_ENV[@]}" FRINUS_DEFER_LOGIN=1 bash
   else
     echo "install: não achei o install.sh do frinus-mcp nem o curl. Use --mcp-install <caminho>." >&2
     exit 1
