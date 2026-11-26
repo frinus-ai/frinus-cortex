@@ -13,6 +13,19 @@ do meio (0.**3**.0).
 > As versões abaixo com número `0.x` são do Frinus Córtex (distribuição ao cliente). As `1.x` acima são do
 > Habblaud, o motor de base, e ficam aqui como histórico do fork.
 
+## [0.2.9] - 2026-11-26
+
+### Corrigido
+
+- **O Frinus para de delegar para um agente genérico depois de compactar o contexto.** No Claude Code, a regra de
+  como delegar vivia só na memória da conversa; quando o Claude Code compactava o contexto, a regra se perdia e o
+  orquestrador voltava a chamar o subagente genérico (`general-purpose`) em vez de um especialista. Agora, em cada
+  conta com o time do Frinus instalado, o Córtex liga dois automatismos no Claude Code (e os reaplica sozinho ao
+  iniciar e ao atualizar): um bloqueia a delegação a agente genérico, orientando a chamar um especialista; o outro,
+  logo após uma compactação, reinsere a regra de delegação e pede um `agent_reorient`. Os automatismos de outras
+  ferramentas (como permissões e mensagens) são preservados, e uma cópia do arquivo de configuração é guardada antes
+  de qualquer mudança.
+
 ## [0.2.8] - 2026-11-25
 
 ### Corrigido
