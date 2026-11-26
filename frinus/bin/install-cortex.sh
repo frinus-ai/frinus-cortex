@@ -199,6 +199,20 @@ else
   fi
 fi
 
+# --- 2b) guarda de delegação nas contas com Frinus ------------------------------------------------
+# Bloqueia a delegação a subagente genérico (general-purpose) e reinjeta a regra após uma compactação de
+# contexto. Idempotente; o servidor também reaplica no boot (server/accounts/delegation.ts via heal).
+if [ "$SKIP_MOD" = 1 ]; then
+  say "Guarda de delegação: pulado (--skip-mod)"
+else
+  say "Guarda de delegação (anti general-purpose) nas contas COM Frinus"
+  if [ "$DRY_RUN" = 1 ]; then
+    run sh -c "cd '$root' && FRINUS_ONLY=1 npm run --silent delegation:install -- --dry-run"
+  else
+    run sh -c "cd '$root' && FRINUS_ONLY=1 npm run --silent delegation:install" || echo "   (aviso: o guarda de delegação não foi instalado; o servidor tenta de novo no boot)"
+  fi
+fi
+
 # --- 3) início automático -------------------------------------------------------------------------
 if [ "$NO_SERVICE" = 1 ]; then
   say "Início automático: pulado (--no-service)"

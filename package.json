@@ -38,6 +38,8 @@
     "mod:install": "tsx scripts/mod-install.ts install",
     "mod:uninstall": "tsx scripts/mod-install.ts uninstall",
     "mod:status": "tsx scripts/mod-install.ts status",
+    "delegation:install": "tsx scripts/delegation-install.ts install",
+    "delegation:status": "tsx scripts/delegation-install.ts status",
     "codex:install": "tsx scripts/codex-install.ts install",
     "codex:uninstall": "tsx scripts/codex-install.ts uninstall",
     "codex:status": "tsx scripts/codex-install.ts status",

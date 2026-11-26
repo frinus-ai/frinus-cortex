@@ -8,6 +8,7 @@ import http from 'node:http';
 import { join } from 'node:path';
 import { codexDirsRefused, discoverClaudeDirs, isDefaultDir } from './accounts/detect';
 import { healDefaultAccountMcp } from './accounts/heal';
+import { installDelegationGuards, summarize as summarizeDelegation } from './accounts/delegation';
 import { AccountsService } from './accounts/service';
 import { isTruthy, loadConfig, messagesOffReason, terminalOffReason, worldSocketUrl } from './config';
 import { createApiHandler, sendJson } from './http/app';
@@ -83,6 +84,16 @@ if (!config.inDocker) {
   const healed = healDefaultAccountMcp(config.home);
   if (healed.copied.length) log.info(tr('Memória do Frinus ligada na conta padrão (~/.claude.json): {0}.', [healed.copied.join(', ')]));
   else if (healed.error) log.warn(tr('Não consegui conferir a memória do Frinus na conta padrão: {0}', [healed.error]));
+}
+// Guarda de delegação: em cada conta com agents/frinus.md, instala/atualiza o hook que bloqueia subagente
+// genérico e o que reinjeta a regra após uma compactação. Idempotente e melhor esforço (nunca derruba o boot).
+if (!config.inDocker) {
+  try {
+    const summary = summarizeDelegation(installDelegationGuards(config.home));
+    if (summary) log.info(tr('Guarda de delegação do Frinus: {0}.', [summary]));
+  } catch (err) {
+    log.warn(tr('Não consegui instalar o guarda de delegação do Frinus: {0}', [errMsg(err)]));
+  }
 }
 const legacyEnv = legacyEnvWarning(Object.keys(process.env));
 if (legacyEnv) log.warn(legacyEnv);
